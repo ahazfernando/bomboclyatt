@@ -5,9 +5,10 @@ import { useRouter } from "next/navigation";
 import { useStore } from "@/lib/store";
 import { useCurrency, CURRENCIES, type Currency } from "@/lib/currency";
 import { Button } from "@/components/ui/button";
-import { Flame, LogOut, User as UserIcon } from "lucide-react";
+import { LogOut, User as UserIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export function SiteNav() {
   const { currentUser, logout } = useStore();
@@ -17,11 +18,12 @@ export function SiteNav() {
   return (
     <header className="sticky top-0 z-40 border-b border-border/60 bg-background/85 backdrop-blur">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
-        <Link href="/" className="flex items-center gap-2 group">
-          <div className="grid h-9 w-9 place-items-center rounded-lg bg-gradient-hero shadow-glow transition-transform group-hover:scale-105">
-            <Flame className="h-5 w-5 text-primary-foreground" />
-          </div>
-          <span className="display text-2xl tracking-wide">EMBERDEX</span>
+        <Link href="/" className="flex items-center group">
+          <img
+            src="/logo/BomboClyatt.png"
+            alt="Bomboclyatt"
+            className="h-11 w-auto transition-transform group-hover:scale-105"
+          />
         </Link>
 
         <nav className="hidden items-center gap-8 md:flex">
@@ -34,16 +36,18 @@ export function SiteNav() {
         </nav>
 
         <div className="flex items-center gap-3">
-          <select
-            value={currency}
-            onChange={(e) => setCurrency(e.target.value as Currency)}
-            aria-label="Currency"
-            className="h-9 rounded-md border border-border bg-card px-2 text-sm font-medium text-foreground"
-          >
-            {CURRENCIES.map((c) => (
-              <option key={c.code} value={c.code}>{c.code}</option>
-            ))}
-          </select>
+          <Select value={currency} onValueChange={(v) => setCurrency(v as Currency)}>
+            <SelectTrigger aria-label="Currency" className="h-9 w-[5.5rem] bg-card">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent align="end">
+              {CURRENCIES.map((c) => (
+                <SelectItem key={c.code} value={c.code}>
+                  {c.code}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
           {currentUser ? (
             <>
@@ -165,11 +169,12 @@ export function SiteFooter() {
         {/* Logo + inline nav row */}
         <div className="mt-16 border-t border-tuft/15 pt-8 flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex items-center gap-8 flex-wrap">
-            <Link href="/" className="flex items-center gap-2">
-              <div className="grid h-9 w-9 place-items-center rounded-lg bg-gradient-hero shadow-glow">
-                <Flame className="h-5 w-5 text-primary-foreground" />
-              </div>
-              <span className="display text-2xl tracking-wide text-tuft">EMBERDEX</span>
+            <Link href="/" className="flex items-center">
+              <img
+                src="/logo/BomboClyatt.png"
+                alt="Bomboclyatt"
+                className="h-12 w-auto"
+              />
             </Link>
             <nav className="flex items-center gap-6 text-sm">
               <Link href="/browse" className="hover:text-crusta transition-colors">Buy</Link>

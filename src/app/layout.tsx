@@ -2,18 +2,71 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { Providers } from "./providers";
 
+const siteName = "BomboClyatt";
+const siteTitle = "BomboClyatt — Buy & Sell Collectible Items";
+const siteDescription =
+  "BomboClyatt is a marketplace to buy and sell collectible items — trading cards, sealed product, slabs, comics, diecast, and more. List your collection and find your next piece.";
+const logoUrl = "/logo/BomboClyatt.png";
+
 export const metadata: Metadata = {
-  title: "Emberdex — Trade Pokémon cards & collectibles",
-  description:
-    "A community marketplace for Pokémon cards and collectibles. Buy, sell, review, and win drops.",
-  authors: [{ name: "Emberdex" }],
-  icons: { icon: "/favicon.ico" },
-  openGraph: {
-    title: "Emberdex — Trade Pokémon cards & collectibles",
-    description: "A community marketplace for Pokémon cards and collectibles.",
-    type: "website",
+  metadataBase: new URL("https://bomboclyatt.com"),
+  title: {
+    default: siteTitle,
+    template: `%s | ${siteName}`,
   },
-  twitter: { card: "summary_large_image" },
+  description: siteDescription,
+  applicationName: siteName,
+  authors: [{ name: siteName }],
+  creator: siteName,
+  publisher: siteName,
+  keywords: [
+    "BomboClyatt",
+    "buy collectibles",
+    "sell collectibles",
+    "collectible marketplace",
+    "trading cards",
+    "sealed product",
+    "graded cards",
+    "slabs",
+    "comics",
+    "diecast",
+    "collectibles for sale",
+  ],
+  icons: {
+    icon: logoUrl,
+    apple: logoUrl,
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+      "max-video-preview": -1,
+    },
+  },
+  openGraph: {
+    title: siteTitle,
+    description: siteDescription,
+    siteName,
+    type: "website",
+    locale: "en_US",
+    images: [
+      {
+        url: logoUrl,
+        alt: `${siteName} logo`,
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: siteTitle,
+    description: siteDescription,
+    images: [logoUrl],
+  },
+  category: "shopping",
 };
 
 export const viewport: Viewport = {
