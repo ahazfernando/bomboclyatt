@@ -1,0 +1,125 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --font-display: "Bebas Neue", "Impact", sans-serif;
+  --font-sans: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-maple: var(--maple);
+  --color-tia: var(--tia);
+  --color-crusta: var(--crusta);
+  --color-koromiko: var(--koromiko);
+  --color-tuft: var(--tuft);
+}
+
+:root {
+  --radius: 0.75rem;
+
+  /* Palette: japanese maple / tia maria / crusta / koromiko / tuft bush */
+  --maple: oklch(0.35 0.15 25);       /* #7E0306 */
+  --tia: oklch(0.58 0.20 38);         /* #D53E0F */
+  --crusta: oklch(0.70 0.17 50);      /* #FA8743 */
+  --koromiko: oklch(0.80 0.13 65);    /* #FCAF67 */
+  --tuft: oklch(0.93 0.04 45);        /* #FFDECD */
+
+  --background: oklch(0.98 0.015 55);
+  --foreground: var(--maple);
+
+  --card: oklch(1 0 0);
+  --card-foreground: var(--maple);
+  --popover: oklch(1 0 0);
+  --popover-foreground: var(--maple);
+
+  --primary: var(--tia);
+  --primary-foreground: oklch(0.99 0.005 60);
+
+  --secondary: var(--tuft);
+  --secondary-foreground: var(--maple);
+
+  --muted: oklch(0.95 0.02 55);
+  --muted-foreground: oklch(0.50 0.08 35);
+
+  --accent: var(--crusta);
+  --accent-foreground: oklch(0.99 0.005 60);
+
+  --destructive: var(--maple);
+  --destructive-foreground: oklch(0.99 0.005 60);
+
+  --border: oklch(0.88 0.04 50);
+  --input: oklch(0.88 0.04 50);
+  --ring: var(--tia);
+
+  --gradient-hero: linear-gradient(135deg, var(--maple) 0%, var(--tia) 55%, var(--crusta) 100%);
+  --gradient-sun: linear-gradient(180deg, var(--crusta), var(--koromiko));
+  --gradient-soft: linear-gradient(180deg, var(--tuft), oklch(0.98 0.015 55));
+  --shadow-card: 0 10px 30px -12px oklch(0.35 0.15 25 / 0.25);
+  --shadow-glow: 0 0 40px oklch(0.70 0.17 50 / 0.45);
+}
+
+.dark {
+  --background: oklch(0.18 0.05 25);
+  --foreground: var(--tuft);
+  --card: oklch(0.22 0.06 25);
+  --card-foreground: var(--tuft);
+  --popover: oklch(0.22 0.06 25);
+  --popover-foreground: var(--tuft);
+  --primary: var(--crusta);
+  --primary-foreground: oklch(0.18 0.05 25);
+  --secondary: oklch(0.28 0.08 30);
+  --secondary-foreground: var(--tuft);
+  --muted: oklch(0.25 0.05 25);
+  --muted-foreground: oklch(0.75 0.06 55);
+  --accent: var(--koromiko);
+  --accent-foreground: oklch(0.18 0.05 25);
+  --border: oklch(0.30 0.06 30);
+  --input: oklch(0.30 0.06 30);
+  --ring: var(--crusta);
+}
+
+@layer base {
+  * { border-color: var(--color-border); }
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    font-feature-settings: "ss01", "cv11";
+  }
+  h1, h2, .display {
+    font-family: var(--font-display);
+    letter-spacing: 0.01em;
+  }
+}
+
+@utility bg-gradient-hero { background-image: var(--gradient-hero); }
+@utility bg-gradient-sun { background-image: var(--gradient-sun); }
+@utility bg-gradient-soft { background-image: var(--gradient-soft); }
+@utility shadow-card { box-shadow: var(--shadow-card); }
+@utility shadow-glow { box-shadow: var(--shadow-glow); }
