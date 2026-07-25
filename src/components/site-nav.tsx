@@ -20,7 +20,7 @@ export function SiteNav() {
       <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
         <Link href="/" className="flex items-center group">
           <img
-            src="/logo/BomboClyatt.png"
+            src="/logo/BomboclyattRedesign.png"
             alt="Bomboclyatt"
             className="h-11 w-auto transition-transform group-hover:scale-105"
           />
@@ -74,8 +74,8 @@ export function SiteNav() {
               </DropdownMenu>
             </>
           ) : (
-            <Button size="sm" className="bg-gradient-hero text-primary-foreground border-0" onClick={() => router.push("/auth?mode=register")}>
-              Sell
+            <Button size="sm" className="bg-maple text-tuft hover:bg-maple/90 border-0" onClick={() => router.push("/auth?mode=register")}>
+              Sell what you got
             </Button>
           )}
         </div>
@@ -171,7 +171,7 @@ export function SiteFooter() {
           <div className="flex items-center gap-8 flex-wrap">
             <Link href="/" className="flex items-center">
               <img
-                src="/logo/BomboClyatt.png"
+                src="/logo/BomboclyattRedesign.png"
                 alt="Bomboclyatt"
                 className="h-12 w-auto"
               />

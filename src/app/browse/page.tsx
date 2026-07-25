@@ -84,7 +84,7 @@ function BrowseContent() {
           placeholder="Search cards, sets…"
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          className="md:max-w-md bg-card"
+          className="w-full flex-1 bg-card"
         />
         <div className="flex items-center gap-2 md:ml-auto">
           <Select value={sort} onValueChange={(v) => setSort(v as Sort)}>
