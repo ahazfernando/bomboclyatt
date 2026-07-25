@@ -18,6 +18,7 @@ export default function Index() {
           alt=""
           className="absolute inset-0 h-full w-full object-cover object-center"
         />
+        <div className="absolute inset-0 bg-black/35" aria-hidden="true" />
         <div className="relative mx-auto max-w-7xl px-6 py-24 md:py-32 lg:py-40">
           <div className="max-w-xl text-primary-foreground">
             <div className="inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-xs font-medium backdrop-blur">
