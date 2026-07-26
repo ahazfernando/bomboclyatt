@@ -1,26 +1,58 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
+import type { DateRange } from "react-day-picker";
 import { useStore, avgRating } from "@/lib/store";
 import { AdminPageHeader } from "@/components/admin-shell";
+import { DateRangePicker, isWithinDateRange } from "@/components/date-range-picker";
 import { TrendingUp, Users, Package, DollarSign } from "lucide-react";
+
+const defaultRange: DateRange = {
+  from: new Date(2026, 5, 1),
+  to: new Date(2026, 7, 29),
+};
 
 export default function Analytics() {
   const { users, listings, events, giveaways } = useStore();
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(defaultRange);
+
+  const filteredListings = useMemo(
+    () => listings.filter((l) => isWithinDateRange(l.createdAt, dateRange)),
+    [listings, dateRange]
+  );
+
+  const filteredEvents = useMemo(
+    () => events.filter((e) => isWithinDateRange(e.date, dateRange)),
+    [events, dateRange]
+  );
+
+  const filteredGiveaways = useMemo(
+    () => giveaways.filter((g) => isWithinDateRange(g.endsAt, dateRange)),
+    [giveaways, dateRange]
+  );
 
   const stats = useMemo(() => {
-    const sold = listings.filter((l) => l.sold);
+    const sold = filteredListings.filter((l) => l.sold);
     const gmv = sold.reduce((a, l) => a + l.price, 0);
-    const sellers = users.filter((u) => u.role === "seller");
-    const buyers = users.filter((u) => u.role === "buyer");
+    const sellerIds = new Set(filteredListings.map((l) => l.sellerId));
+    const sellersInRange = users.filter((u) => u.role === "seller" && sellerIds.has(u.id));
     const avgSellerRating =
-      sellers.reduce((a, s) => a + avgRating(s.ratings), 0) / (sellers.length || 1);
-    return { gmv, sold: sold.length, live: listings.length - sold.length, sellers: sellers.length, buyers: buyers.length, avgSellerRating };
-  }, [listings, users]);
+      sellersInRange.reduce((a, s) => a + avgRating(s.ratings), 0) / (sellersInRange.length || 1);
+
+    return {
+      gmv,
+      sold: sold.length,
+      live: filteredListings.length - sold.length,
+      sellers: sellersInRange.length,
+      buyers: users.filter((u) => u.role === "buyer").length,
+      avgSellerRating,
+      totalListings: filteredListings.length,
+    };
+  }, [filteredListings, users]);
 
   const byCategory = useMemo(() => {
     const map = new Map<string, { count: number; value: number }>();
-    for (const l of listings) {
+    for (const l of filteredListings) {
       const c = map.get(l.category) ?? { count: 0, value: 0 };
       c.count += 1;
       c.value += l.price;
@@ -29,18 +61,26 @@ export default function Analytics() {
     const arr = Array.from(map, ([category, v]) => ({ category, ...v }));
     const max = Math.max(...arr.map((a) => a.value), 1);
     return arr.map((a) => ({ ...a, pct: (a.value / max) * 100 }));
-  }, [listings]);
+  }, [filteredListings]);
 
   const cards = [
     { icon: DollarSign, label: "GMV", value: `$${stats.gmv.toLocaleString()}` },
     { icon: Package, label: "Live listings", value: stats.live },
-    { icon: Users, label: "Sellers", value: stats.sellers },
+    { icon: Users, label: "Active sellers", value: stats.sellers },
     { icon: TrendingUp, label: "Avg seller rating", value: stats.avgSellerRating.toFixed(2) },
   ];
 
   return (
     <div>
-      <AdminPageHeader title="Analytics" subtitle="Marketplace performance at a glance" />
+      <AdminPageHeader
+        title="Analytics"
+        subtitle={
+          dateRange?.from && dateRange?.to
+            ? `${stats.totalListings} listings in selected range`
+            : "Marketplace performance at a glance"
+        }
+        action={<DateRangePicker value={dateRange} onChange={setDateRange} />}
+      />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {cards.map((c) => (
@@ -57,19 +97,25 @@ export default function Analytics() {
       <div className="mt-6 grid gap-5 lg:grid-cols-2">
         <div className="rounded-3xl bg-background p-5 shadow-card">
           <div className="font-semibold">Listings value by category</div>
-          <div className="mt-4 space-y-3">
-            {byCategory.map((c) => (
-              <div key={c.category}>
-                <div className="mb-1 flex justify-between text-sm">
-                  <span>{c.category}</span>
-                  <span className="text-muted-foreground">${c.value.toLocaleString()} · {c.count}</span>
+          {byCategory.length === 0 ? (
+            <p className="mt-4 text-sm text-muted-foreground">No listings in this date range.</p>
+          ) : (
+            <div className="mt-4 space-y-3">
+              {byCategory.map((c) => (
+                <div key={c.category}>
+                  <div className="mb-1 flex justify-between text-sm">
+                    <span>{c.category}</span>
+                    <span className="text-muted-foreground">
+                      ${c.value.toLocaleString()} · {c.count}
+                    </span>
+                  </div>
+                  <div className="h-2 rounded-full bg-secondary">
+                    <div className="h-full rounded-full bg-gradient-hero" style={{ width: `${c.pct}%` }} />
+                  </div>
                 </div>
-                <div className="h-2 rounded-full bg-secondary">
-                  <div className="h-full rounded-full bg-gradient-hero" style={{ width: `${c.pct}%` }} />
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="rounded-3xl bg-background p-5 shadow-card">
@@ -77,8 +123,8 @@ export default function Analytics() {
           <div className="mt-4 grid grid-cols-2 gap-4 text-center">
             <Stat label="Buyers" value={stats.buyers} />
             <Stat label="Sellers" value={stats.sellers} />
-            <Stat label="Events" value={events.length} />
-            <Stat label="Giveaways" value={giveaways.length} />
+            <Stat label="Events" value={filteredEvents.length} />
+            <Stat label="Giveaways" value={filteredGiveaways.length} />
           </div>
         </div>
       </div>

@@ -3,7 +3,14 @@
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { useEffect, type ReactNode } from "react";
+import type { LucideIcon } from "lucide-react";
 import { useStore } from "@/lib/store";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import {
   LayoutGrid,
   BarChart3,
@@ -32,6 +39,71 @@ const rail2 = [
   { to: "/admin/messages", icon: Mail, label: "Messages" },
   { to: "/admin/help", icon: HelpCircle, label: "Help" },
 ] as const;
+
+function SidebarNavLink({
+  href,
+  label,
+  icon: Icon,
+  active,
+}: {
+  href: string;
+  label: string;
+  icon: LucideIcon;
+  active: boolean;
+}) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Link
+          href={href}
+          className={`grid h-12 w-12 place-items-center rounded-2xl transition ${
+            active
+              ? "bg-maple text-tuft shadow-glow"
+              : "bg-background text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <Icon className="h-5 w-5" />
+        </Link>
+      </TooltipTrigger>
+      <TooltipContent side="right" sideOffset={12} className="rounded-full px-3 py-1.5 font-medium">
+        {label}
+      </TooltipContent>
+    </Tooltip>
+  );
+}
+
+function SidebarNavButton({
+  label,
+  icon: Icon,
+  active,
+  onClick,
+}: {
+  label: string;
+  icon: LucideIcon;
+  active?: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button
+          type="button"
+          onClick={onClick}
+          className={`grid h-12 w-12 place-items-center rounded-2xl transition ${
+            active
+              ? "bg-maple text-tuft shadow-glow"
+              : "bg-background text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <Icon className="h-5 w-5" />
+        </button>
+      </TooltipTrigger>
+      <TooltipContent side="right" sideOffset={12} className="rounded-full px-3 py-1.5 font-medium">
+        {label}
+      </TooltipContent>
+    </Tooltip>
+  );
+}
 
 export function AdminShell({ children }: { children: ReactNode }) {
   const router = useRouter();
@@ -73,60 +145,45 @@ export function AdminShell({ children }: { children: ReactNode }) {
 
       <div className="flex min-h-0 flex-1 gap-5 px-4 pb-4 pt-4 sm:px-6 sm:pb-6 sm:pt-5">
         <aside className="hidden w-[72px] shrink-0 flex-col items-center justify-between self-stretch rounded-3xl bg-secondary/50 py-6 lg:flex">
-          <div className="flex flex-col items-center gap-3">
-            {rail.map((n) => (
-              <Link
-                key={n.to}
-                href={n.to}
-                title={n.label}
-                className={`grid h-12 w-12 place-items-center rounded-2xl transition ${
-                  isActive(n.to)
-                    ? "bg-maple text-tuft shadow-glow"
-                    : "bg-background text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                <n.icon className="h-5 w-5" />
-              </Link>
-            ))}
-            <div className="my-2 h-px w-8 bg-border" />
-            {rail2.map((n) => (
-              <Link
-                key={n.to}
-                href={n.to}
-                title={n.label}
-                className={`grid h-12 w-12 place-items-center rounded-2xl transition ${
-                  isActive(n.to)
-                    ? "bg-maple text-tuft shadow-glow"
-                    : "bg-background text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                <n.icon className="h-5 w-5" />
-              </Link>
-            ))}
-          </div>
-          <div className="flex flex-col items-center gap-3">
-            <Link
-              href="/admin/settings"
-              title="Settings"
-              className={`grid h-12 w-12 place-items-center rounded-2xl transition ${
-                isActive("/admin/settings")
-                  ? "bg-maple text-tuft shadow-glow"
-                  : "bg-background text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              <Settings className="h-5 w-5" />
-            </Link>
-            <button
-              onClick={() => {
-                logout();
-                router.push("/");
-              }}
-              title="Sign out"
-              className="grid h-12 w-12 place-items-center rounded-2xl bg-background text-muted-foreground hover:text-foreground"
-            >
-              <LogOut className="h-5 w-5" />
-            </button>
-          </div>
+          <TooltipProvider delayDuration={0}>
+            <div className="flex flex-col items-center gap-3">
+              {rail.map((n) => (
+                <SidebarNavLink
+                  key={n.to}
+                  href={n.to}
+                  label={n.label}
+                  icon={n.icon}
+                  active={isActive(n.to)}
+                />
+              ))}
+              <div className="my-2 h-px w-8 bg-border" />
+              {rail2.map((n) => (
+                <SidebarNavLink
+                  key={n.to}
+                  href={n.to}
+                  label={n.label}
+                  icon={n.icon}
+                  active={isActive(n.to)}
+                />
+              ))}
+            </div>
+            <div className="flex flex-col items-center gap-3">
+              <SidebarNavLink
+                href="/admin/settings"
+                label="Settings"
+                icon={Settings}
+                active={isActive("/admin/settings")}
+              />
+              <SidebarNavButton
+                label="Sign out"
+                icon={LogOut}
+                onClick={() => {
+                  logout();
+                  router.push("/");
+                }}
+              />
+            </div>
+          </TooltipProvider>
         </aside>
 
         <main className="min-w-0 flex-1 overflow-auto">{children}</main>
