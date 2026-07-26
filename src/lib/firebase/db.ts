@@ -9,7 +9,7 @@ import {
   writeBatch,
   type Firestore,
 } from "firebase/firestore";
-import type { User, Admin, Listing, Event, Giveaway } from "@/lib/types";
+import type { User, Admin, Listing, Event, Giveaway, BoostTransaction, Conversation, Message } from "@/lib/types";
 import { seedData } from "./seed";
 
 export const COLLECTIONS = {
@@ -18,6 +18,9 @@ export const COLLECTIONS = {
   listings: "listings",
   events: "events",
   giveaways: "giveaways",
+  boostTransactions: "boostTransactions",
+  conversations: "conversations",
+  messages: "messages",
   meta: "meta",
 } as const;
 
@@ -147,4 +150,128 @@ export async function updateGiveaway(
   data: Partial<Giveaway>
 ): Promise<void> {
   await updateDoc(doc(db, COLLECTIONS.giveaways, id), data);
+}
+
+export async function createBoostTransaction(
+  db: Firestore,
+  tx: BoostTransaction
+): Promise<BoostTransaction> {
+  await setDoc(doc(db, COLLECTIONS.boostTransactions, tx.id), tx);
+  return tx;
+}
+
+export async function getAllBoostTransactions(db: Firestore): Promise<BoostTransaction[]> {
+  const snap = await getDocs(collection(db, COLLECTIONS.boostTransactions));
+  return snap.docs.map((d) => d.data() as BoostTransaction);
+}
+
+export async function getConversation(db: Firestore, id: string): Promise<Conversation | null> {
+  const snap = await getDoc(doc(db, COLLECTIONS.conversations, id));
+  return snap.exists() ? (snap.data() as Conversation) : null;
+}
+
+export async function findConversationByParticipants(
+  db: Firestore,
+  buyerId: string,
+  sellerId: string,
+  listingId: string
+): Promise<Conversation | null> {
+  const snap = await getDocs(collection(db, COLLECTIONS.conversations));
+  return (
+    snap.docs
+      .map((d) => d.data() as Conversation)
+      .find(
+        (c) => c.buyerId === buyerId && c.sellerId === sellerId && c.listingId === listingId
+      ) ?? null
+  );
+}
+
+export async function createConversation(
+  db: Firestore,
+  conversation: Conversation
+): Promise<Conversation> {
+  await setDoc(doc(db, COLLECTIONS.conversations, conversation.id), conversation);
+  return conversation;
+}
+
+export async function updateConversation(
+  db: Firestore,
+  id: string,
+  data: Partial<Conversation>
+): Promise<void> {
+  await updateDoc(doc(db, COLLECTIONS.conversations, id), data);
+}
+
+export async function getUserConversations(db: Firestore, userId: string): Promise<Conversation[]> {
+  const snap = await getDocs(collection(db, COLLECTIONS.conversations));
+  return snap.docs
+    .map((d) => d.data() as Conversation)
+    .filter((c) => c.buyerId === userId || c.sellerId === userId)
+    .sort((a, b) => b.lastMessageAt.localeCompare(a.lastMessageAt));
+}
+
+export async function createMessage(db: Firestore, message: Message): Promise<Message> {
+  await setDoc(doc(db, COLLECTIONS.messages, message.id), message);
+  await updateConversation(db, message.conversationId, {
+    lastMessageAt: message.createdAt,
+  });
+  return message;
+}
+
+export async function getConversationMessages(
+  db: Firestore,
+  conversationId: string,
+  options: { limit?: number; before?: string } = {}
+): Promise<Message[]> {
+  const snap = await getDocs(collection(db, COLLECTIONS.messages));
+  const limit = options.limit ?? 50;
+  let messages = snap.docs
+    .map((d) => d.data() as Message)
+    .filter((m) => m.conversationId === conversationId)
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+
+  if (options.before) {
+    messages = messages.filter((m) => m.createdAt < options.before!);
+  }
+
+  return messages.slice(0, limit).reverse();
+}
+
+export async function markConversationMessagesRead(
+  db: Firestore,
+  conversationId: string,
+  readerId: string
+): Promise<number> {
+  const snap = await getDocs(collection(db, COLLECTIONS.messages));
+  const now = new Date().toISOString();
+  let count = 0;
+  const batch = writeBatch(db);
+
+  for (const docSnap of snap.docs) {
+    const message = docSnap.data() as Message;
+    if (
+      message.conversationId === conversationId &&
+      message.senderId !== readerId &&
+      !message.readAt
+    ) {
+      batch.update(docSnap.ref, { readAt: now });
+      count++;
+    }
+  }
+
+  if (count > 0) await batch.commit();
+  return count;
+}
+
+export async function countRecentMessagesBySender(
+  db: Firestore,
+  senderId: string,
+  windowMs: number
+): Promise<number> {
+  const cutoff = new Date(Date.now() - windowMs).toISOString();
+  const snap = await getDocs(collection(db, COLLECTIONS.messages));
+  return snap.docs.filter((d) => {
+    const m = d.data() as Message;
+    return m.senderId === senderId && m.createdAt > cutoff;
+  }).length;
 }

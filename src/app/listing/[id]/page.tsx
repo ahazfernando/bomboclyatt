@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useStore, avgRating } from "@/lib/store";
+import { fetchChatToken } from "@/lib/chat/client-auth";
+import { startConversation } from "@/hooks/use-conversations";
 import { useCurrency } from "@/lib/currency";
 import { Button } from "@/components/ui/button";
 import { StarRating } from "@/components/star-rating";
@@ -27,6 +29,7 @@ export default function ListingDetail() {
   const [qty, setQty] = useState(1);
   const [tab, setTab] = useState<Tab>("reviews");
   const [condition, setCondition] = useState<string | null>(null);
+  const [messaging, setMessaging] = useState(false);
 
   // Derive multi-image gallery — supports 1..N images once uploads land.
   const images = useMemo(() => {
@@ -63,6 +66,26 @@ export default function ListingDetail() {
   };
 
   const isSeller = currentUser?.id === listing.sellerId;
+
+  const messageSeller = async () => {
+    if (!currentUser) {
+      router.push("/auth?mode=login");
+      return;
+    }
+    if (!seller) {
+      toast.error("Seller not found.");
+      return;
+    }
+    setMessaging(true);
+    await fetchChatToken(currentUser.id);
+    const conversation = await startConversation(listing.id, seller.id);
+    setMessaging(false);
+    if (!conversation) {
+      toast.error("Could not start conversation.");
+      return;
+    }
+    router.push(`/dashboard/messages?conversation=${conversation.id}`);
+  };
 
   return (
     <div className="mx-auto max-w-7xl px-6 py-8">
@@ -177,12 +200,24 @@ export default function ListingDetail() {
                 Sold {buyer ? `to ${buyer.name}` : ""}
               </div>
             ) : (
-              <Button
-                onClick={buy}
-                className="flex-1 h-12 rounded-full bg-foreground text-background hover:bg-foreground/90"
-              >
-                <MessageCircle className="mr-2 h-4 w-4" /> Buy on WhatsApp
-              </Button>
+              <div className="flex flex-1 gap-2">
+                <Button
+                  onClick={buy}
+                  className="flex-1 h-12 rounded-full bg-foreground text-background hover:bg-foreground/90"
+                >
+                  <MessageCircle className="mr-2 h-4 w-4" /> Buy on WhatsApp
+                </Button>
+                {!isSeller && (
+                  <Button
+                    variant="outline"
+                    onClick={() => void messageSeller()}
+                    disabled={messaging}
+                    className="h-12 rounded-full px-6"
+                  >
+                    Message seller
+                  </Button>
+                )}
+              </div>
             )}
           </div>
 

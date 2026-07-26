@@ -1,4 +1,4 @@
-import type { User, Admin, Listing, Event, Giveaway } from "@/lib/types";
+import type { User, Admin, Listing, Event, Giveaway, BoostTransaction } from "@/lib/types";
 
 const img = (q: string) =>
   `https://images.unsplash.com/${q}?auto=format&fit=crop&w=800&q=80`;
@@ -22,6 +22,7 @@ export const seedUsers: User[] = [
     whatsapp: "15551234567",
     bio: "Vintage WOTC specialist. Ships worldwide.",
     points: 320,
+    walletBalance: 50,
     ratings: [
       {
         from: "u-2",
@@ -39,6 +40,7 @@ export const seedUsers: User[] = [
     whatsapp: "15552345678",
     bio: "Modern sets, sealed product, PSA graded.",
     points: 180,
+    walletBalance: 25,
     ratings: [
       { from: "u-3", stars: 4, comment: "Great communication.", date: "2026-06-10" },
     ],
@@ -51,6 +53,7 @@ export const seedUsers: User[] = [
     whatsapp: "15553456789",
     bio: "Collecting Grass-types since 1999.",
     points: 90,
+    walletBalance: 0,
     ratings: [
       { from: "u-1", stars: 5, comment: "Honest buyer, quick payment.", date: "2026-06-05" },
     ],
@@ -189,10 +192,13 @@ export const seedGiveaways: Giveaway[] = [
   },
 ];
 
+export const seedBoostTransactions: BoostTransaction[] = [];
+
 export const seedData = {
   users: seedUsers,
   admins: seedAdmins,
   listings: seedListings,
   events: seedEvents,
   giveaways: seedGiveaways,
+  boostTransactions: seedBoostTransactions,
 };

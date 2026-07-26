@@ -5,6 +5,8 @@ import type { Listing } from "@/lib/store";
 import { useCurrency } from "@/lib/currency";
 import { useStore } from "@/lib/store";
 import { Badge } from "@/components/ui/badge";
+import { isListingBoosted } from "@/lib/boost";
+import { Rocket } from "lucide-react";
 
 export function ListingCard({ listing }: { listing: Listing }) {
   const { formatPrice } = useCurrency();
@@ -27,7 +29,15 @@ export function ListingCard({ listing }: { listing: Listing }) {
       <div className="p-4">
         <div className="flex items-center justify-between gap-2">
           <Badge variant="outline" className="border-accent/40 text-accent bg-accent/5">{listing.condition}</Badge>
-          {listing.sold && <Badge className="bg-destructive text-destructive-foreground">SOLD</Badge>}
+          <div className="flex items-center gap-1">
+            {isListingBoosted(listing) && (
+              <Badge className="bg-maple text-tuft">
+                <Rocket className="mr-1 h-3 w-3" />
+                Boosted
+              </Badge>
+            )}
+            {listing.sold && <Badge className="bg-destructive text-destructive-foreground">SOLD</Badge>}
+          </div>
         </div>
         <h3 className="mt-3 line-clamp-1 font-semibold text-foreground">{listing.title}</h3>
         <p className="text-xs text-muted-foreground">{listing.set}</p>

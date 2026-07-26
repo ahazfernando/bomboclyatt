@@ -17,11 +17,13 @@ import {
   updateGiveaway,
   updateListing,
   updateUser,
+  createBoostTransaction,
 } from "@/lib/firebase/db";
 import { seedData } from "@/lib/firebase/seed";
-import type { User, Admin, Listing, Event, Giveaway, UserRole, SessionType } from "@/lib/types";
+import { calculateBoostTotal, computeBoostedUntil, type BoostPlanId } from "@/lib/boost";
+import type { User, Admin, Listing, Event, Giveaway, UserRole, SessionType, BoostTransaction } from "@/lib/types";
 
-export type { User, Admin, Listing, Event, Giveaway, UserRole, SessionType };
+export type { User, Admin, Listing, Event, Giveaway, UserRole, SessionType, BoostTransaction };
 export type Role = UserRole;
 
 interface Store {
@@ -33,6 +35,7 @@ interface Store {
   listings: Listing[];
   events: Event[];
   giveaways: Giveaway[];
+  boostTransactions: BoostTransaction[];
   loading: boolean;
   login: (email: string) => boolean;
   loginAdmin: (email: string) => boolean;
@@ -55,6 +58,8 @@ interface Store {
   addGiveaway: (g: Omit<Giveaway, "id" | "sellerId" | "entrants">) => void;
   enterGiveaway: (id: string) => void;
   drawGiveaway: (id: string) => void;
+  boostListings: (listingIds: string[], planId: BoostPlanId) => { ok: true } | { ok: false; reason: string };
+  addWalletFunds: (amount: number) => void;
 }
 
 const LOCAL_KEY = "bomboclyatt-v2";
@@ -72,6 +77,7 @@ type AppData = {
   listings: Listing[];
   events: Event[];
   giveaways: Giveaway[];
+  boostTransactions: BoostTransaction[];
 };
 
 function loadLocal(): AppData {
@@ -80,7 +86,7 @@ function loadLocal(): AppData {
     const raw = localStorage.getItem(LOCAL_KEY);
     if (raw) {
       const parsed = JSON.parse(raw) as AppData;
-      return { ...seedData, ...parsed, admins: parsed.admins ?? seedData.admins };
+      return { ...seedData, ...parsed, admins: parsed.admins ?? seedData.admins, boostTransactions: parsed.boostTransactions ?? seedData.boostTransactions };
     }
   } catch {}
   return seedData;
@@ -169,6 +175,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
               ...prev,
               giveaways: snap.docs.map((d) => d.data() as Giveaway),
             }));
+          }),
+          onSnapshot(collection(db, COLLECTIONS.boostTransactions), (snap) => {
+            setData((prev) => ({
+              ...prev,
+              boostTransactions: snap.docs.map((d) => d.data() as BoostTransaction),
+            }));
           })
         );
 
@@ -236,9 +248,27 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     if (u) {
       localStorage.setItem(SESSION, u.id);
       localStorage.setItem(SESSION_TYPE, "user");
+      if (!useFirebase) {
+        void fetch("/api/auth/sync-user", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(u),
+        });
+      }
+      void fetch("/api/auth/token", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: u.id }),
+      }).then(async (res) => {
+        if (res.ok) {
+          const data = (await res.json()) as { token: string };
+          localStorage.setItem("bomboclyatt-chat-token", data.token);
+        }
+      });
     } else {
       localStorage.removeItem(SESSION);
       localStorage.removeItem(SESSION_TYPE);
+      localStorage.removeItem("bomboclyatt-chat-token");
     }
   };
 
@@ -312,7 +342,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       return true;
     },
     register: (u) => {
-      const nu: User = { ...u, id: `u-${Date.now()}`, points: 0, ratings: [] };
+      const nu: User = { ...u, id: `u-${Date.now()}`, points: 0, walletBalance: 0, ratings: [] };
       if (useFirebase) {
         void createUser(getFirestoreDb(), nu);
       } else {
@@ -323,7 +353,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     adminCreateUser: (u) => {
       const exists = data.users.some((x) => x.email.toLowerCase() === u.email.toLowerCase());
       if (exists) return false;
-      const nu: User = { ...u, id: `u-${Date.now()}`, points: 0, ratings: [] };
+      const nu: User = { ...u, id: `u-${Date.now()}`, points: 0, walletBalance: 0, ratings: [] };
       if (useFirebase) {
         void createUser(getFirestoreDb(), nu);
       } else {
@@ -465,6 +495,60 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           giveaways: d.giveaways.map((x) => (x.id === id ? { ...x, winnerId: winner } : x)),
         }));
       }
+    },
+    boostListings: (listingIds, planId) => {
+      if (!currentUser) return { ok: false, reason: "You must be logged in." };
+      if (listingIds.length === 0) return { ok: false, reason: "Select at least one listing." };
+
+      const owned = listingIds.filter((id) => {
+        const l = data.listings.find((x) => x.id === id);
+        return l && l.sellerId === currentUser.id && !l.sold;
+      });
+      if (owned.length !== listingIds.length) {
+        return { ok: false, reason: "Some listings are invalid or already sold." };
+      }
+
+      const amount = calculateBoostTotal(listingIds.length, planId);
+      const balance = currentUser.walletBalance ?? 0;
+      if (balance < amount) {
+        return { ok: false, reason: `Insufficient wallet balance. Need $${amount.toFixed(2)}, have $${balance.toFixed(2)}.` };
+      }
+
+      const now = new Date().toISOString();
+      const tx: BoostTransaction = {
+        id: `bt-${Date.now()}`,
+        sellerId: currentUser.id,
+        listingIds,
+        planId,
+        amount,
+        createdAt: now,
+      };
+
+      void patchUser(currentUser.id, { walletBalance: balance - amount });
+      setCurrentUser({ ...currentUser, walletBalance: balance - amount });
+
+      for (const id of listingIds) {
+        const listing = data.listings.find((l) => l.id === id)!;
+        const boostedUntil = computeBoostedUntil(planId, listing.boostedUntil);
+        void patchListing(id, { boostedUntil, boostedAt: now });
+      }
+
+      if (useFirebase) {
+        void createBoostTransaction(getFirestoreDb(), tx);
+      } else {
+        setData((d) => ({
+          ...d,
+          boostTransactions: [tx, ...d.boostTransactions],
+        }));
+      }
+
+      return { ok: true };
+    },
+    addWalletFunds: (amount) => {
+      if (!currentUser || amount <= 0) return;
+      const balance = (currentUser.walletBalance ?? 0) + amount;
+      void patchUser(currentUser.id, { walletBalance: balance });
+      setCurrentUser({ ...currentUser, walletBalance: balance });
     },
   };
 

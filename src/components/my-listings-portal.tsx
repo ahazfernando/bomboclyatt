@@ -36,7 +36,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { toast } from "sonner";
-import { Eye, MousePointerClick, Pencil, Plus, Trash2, ExternalLink } from "lucide-react";
+import { Eye, MousePointerClick, Pencil, Plus, Trash2, ExternalLink, Rocket } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { BoostListingsDialog } from "@/components/boost-listings-dialog";
+import { isListingBoosted, getBoostTimeRemaining } from "@/lib/boost";
 
 const categories = ["Sealed Product", "Single Hits", "Accessories", "Slabs", "Comics", "Diecast"] as const;
 const conditions = ["Mint", "Near Mint", "Lightly Played", "Played"] as const;
@@ -167,6 +170,9 @@ export function MyListingsPortal() {
   const [editTarget, setEditTarget] = useState<Listing | null>(null);
   const [createForm, setCreateForm] = useState<ListingForm>(emptyForm);
   const [editForm, setEditForm] = useState<ListingForm>(emptyForm);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [boostOpen, setBoostOpen] = useState(false);
+  const [boostListingIds, setBoostListingIds] = useState<string[]>([]);
 
   const myListings = useMemo(
     () => listings.filter((l) => l.sellerId === currentUser?.id),
@@ -226,7 +232,37 @@ export function MyListingsPortal() {
 
   const handleDelete = (id: string) => {
     deleteListing(id);
+    setSelected((prev) => {
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
     toast.success("Listing deleted.");
+  };
+
+  const liveListings = myListings.filter((l) => !l.sold);
+  const selectedLive = [...selected].filter((id) => liveListings.some((l) => l.id === id));
+
+  const openBoost = (ids: string[]) => {
+    setBoostListingIds(ids);
+    setBoostOpen(true);
+  };
+
+  const toggleSelect = (id: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedLive.length === liveListings.length) {
+      setSelected(new Set());
+    } else {
+      setSelected(new Set(liveListings.map((l) => l.id)));
+    }
   };
 
   return (
@@ -283,10 +319,32 @@ export function MyListingsPortal() {
           </Button>
         </div>
       ) : (
-        <div className="mt-8 overflow-hidden rounded-2xl border border-border bg-card shadow-card">
+        <div className="mt-8 space-y-3">
+          {selectedLive.length > 0 && (
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-maple/30 bg-maple/5 px-4 py-3">
+              <p className="text-sm font-medium">
+                {selectedLive.length} listing{selectedLive.length !== 1 ? "s" : ""} selected
+              </p>
+              <Button
+                className="bg-maple text-tuft hover:bg-maple/90"
+                onClick={() => openBoost(selectedLive)}
+              >
+                <Rocket className="mr-2 h-4 w-4" />
+                Boost selected
+              </Button>
+            </div>
+          )}
+          <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-card">
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-10">
+                  <Checkbox
+                    checked={liveListings.length > 0 && selectedLive.length === liveListings.length}
+                    onCheckedChange={toggleSelectAll}
+                    aria-label="Select all live listings"
+                  />
+                </TableHead>
                 <TableHead>Product</TableHead>
                 <TableHead>Price</TableHead>
                 <TableHead className="text-center">
@@ -307,6 +365,15 @@ export function MyListingsPortal() {
               {myListings.map((l) => (
                 <TableRow key={l.id}>
                   <TableCell>
+                    {!l.sold ? (
+                      <Checkbox
+                        checked={selected.has(l.id)}
+                        onCheckedChange={() => toggleSelect(l.id)}
+                        aria-label={`Select ${l.title}`}
+                      />
+                    ) : null}
+                  </TableCell>
+                  <TableCell>
                     <div className="flex items-center gap-3">
                       <img src={l.image} alt="" className="h-12 w-12 rounded-lg object-cover" />
                       <div>
@@ -319,14 +386,32 @@ export function MyListingsPortal() {
                   <TableCell className="text-center">{l.views ?? 0}</TableCell>
                   <TableCell className="text-center">{l.clicks ?? 0}</TableCell>
                   <TableCell>
-                    {l.sold ? (
-                      <Badge className="bg-destructive text-destructive-foreground">Sold</Badge>
-                    ) : (
-                      <Badge variant="outline" className="border-primary/30 text-primary">Live</Badge>
-                    )}
+                    <div className="flex flex-wrap items-center gap-2">
+                      {l.sold ? (
+                        <Badge className="bg-destructive text-destructive-foreground">Sold</Badge>
+                      ) : (
+                        <Badge variant="outline" className="border-primary/30 text-primary">Live</Badge>
+                      )}
+                      {isListingBoosted(l) && (
+                        <Badge className="bg-maple text-tuft">
+                          <Rocket className="mr-1 h-3 w-3" />
+                          Boosted · {getBoostTimeRemaining(l)}
+                        </Badge>
+                      )}
+                    </div>
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-1">
+                      {!l.sold && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => openBoost([l.id])}
+                          aria-label="Boost listing"
+                        >
+                          <Rocket className="h-4 w-4 text-maple" />
+                        </Button>
+                      )}
                       <Button variant="ghost" size="icon" asChild>
                         <Link href={`/listing/${l.id}`} aria-label="View listing">
                           <ExternalLink className="h-4 w-4" />
@@ -373,8 +458,16 @@ export function MyListingsPortal() {
               ))}
             </TableBody>
           </Table>
+          </div>
         </div>
       )}
+
+      <BoostListingsDialog
+        open={boostOpen}
+        onOpenChange={setBoostOpen}
+        listingIds={boostListingIds}
+        onSuccess={() => setSelected(new Set())}
+      />
 
       {/* Edit dialog */}
       <Dialog open={!!editTarget} onOpenChange={(open) => !open && setEditTarget(null)}>

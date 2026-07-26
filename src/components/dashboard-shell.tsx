@@ -17,17 +17,22 @@ import {
   Search,
   Bell,
   User,
+  Wallet,
+  MessageSquare,
 } from "lucide-react";
 
 const buyerRail = [
   { to: "/dashboard", icon: LayoutGrid, label: "Overview" },
   { to: "/dashboard/listings", icon: Package, label: "My Listings" },
+  { to: "/dashboard/messages", icon: MessageSquare, label: "Messages" },
   { to: "/dashboard/purchases", icon: ShoppingBag, label: "Purchases" },
 ] as const;
 
 const sellerRail = [
   { to: "/dashboard", icon: LayoutGrid, label: "Overview" },
   { to: "/dashboard/listings", icon: Package, label: "Listings" },
+  { to: "/dashboard/messages", icon: MessageSquare, label: "Messages" },
+  { to: "/dashboard/wallet", icon: Wallet, label: "Wallet" },
   { to: "/dashboard/analytics", icon: BarChart3, label: "Analytics" },
   { to: "/dashboard/events", icon: Calendar, label: "Events" },
   { to: "/dashboard/giveaways", icon: Gift, label: "Giveaways" },

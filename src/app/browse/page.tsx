@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { LayoutGrid, List } from "lucide-react";
+import { sortListingsWithBoost } from "@/lib/boost";
 
 const categories = ["All", "Sealed Product", "Single Hits", "Accessories", "Slabs", "Comics", "Diecast"] as const;
 const conditions = ["Mint", "Near Mint", "Lightly Played", "Played"] as const;
@@ -60,10 +61,12 @@ function BrowseContent() {
         l.title.toLowerCase().includes(q.toLowerCase()) ||
         l.set.toLowerCase().includes(q.toLowerCase()))
     );
-    if (sort === "price-asc") out.sort((a, b) => a.price - b.price);
-    else if (sort === "price-desc") out.sort((a, b) => b.price - a.price);
-    else out.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-    return out;
+    const secondarySort = (a: typeof out[0], b: typeof out[0]) => {
+      if (sort === "price-asc") return a.price - b.price;
+      if (sort === "price-desc") return b.price - a.price;
+      return b.createdAt.localeCompare(a.createdAt);
+    };
+    return sortListingsWithBoost(out, secondarySort);
   }, [listings, cat, cond, hideSold, price, q, sort]);
 
   const resetFilters = () => {

@@ -9,6 +9,7 @@ export interface User {
   bio?: string;
   avatar?: string;
   points: number;
+  walletBalance?: number;
   ratings: { from: string; stars: number; comment: string; date: string }[];
 }
 
@@ -38,6 +39,17 @@ export interface Listing {
   reviews: { from: string; stars: number; comment: string; date: string }[];
   views: number;
   clicks: number;
+  boostedUntil?: string;
+  boostedAt?: string;
+}
+
+export interface BoostTransaction {
+  id: string;
+  sellerId: string;
+  listingIds: string[];
+  planId: string;
+  amount: number;
+  createdAt: string;
 }
 
 export interface Event {
@@ -62,3 +74,22 @@ export interface Giveaway {
 }
 
 export type SessionType = "user" | "admin";
+
+export interface Conversation {
+  id: string;
+  buyerId: string;
+  sellerId: string;
+  listingId: string;
+  createdAt: string;
+  lastMessageAt: string;
+}
+
+export interface Message {
+  id: string;
+  conversationId: string;
+  senderId: string;
+  body: string;
+  attachmentUrl?: string | null;
+  readAt?: string | null;
+  createdAt: string;
+}

@@ -34,7 +34,8 @@ import {
 } from "@/components/ui/table";
 import { ListingFormFields } from "@/components/my-listings-portal";
 import { toast } from "sonner";
-import { Eye, ExternalLink, MousePointerClick, Pencil, Search, Trash2 } from "lucide-react";
+import { Eye, ExternalLink, MousePointerClick, Pencil, Search, Trash2, Rocket } from "lucide-react";
+import { isListingBoosted, getBoostTimeRemaining } from "@/lib/boost";
 
 const categories = ["Sealed Product", "Single Hits", "Accessories", "Slabs", "Comics", "Diecast"] as const;
 const conditions = ["Mint", "Near Mint", "Lightly Played", "Played"] as const;
@@ -160,6 +161,7 @@ export default function AdminListings() {
                 </span>
               </TableHead>
               <TableHead>Status</TableHead>
+              <TableHead>Boost</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -194,6 +196,16 @@ export default function AdminListings() {
                       <Badge className="bg-destructive text-destructive-foreground">Sold</Badge>
                     ) : (
                       <Badge variant="outline" className="border-primary/30 text-primary">Live</Badge>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {isListingBoosted(l) ? (
+                      <Badge className="bg-maple text-tuft">
+                        <Rocket className="mr-1 h-3 w-3" />
+                        {getBoostTimeRemaining(l)}
+                      </Badge>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">—</span>
                     )}
                   </TableCell>
                   <TableCell className="text-right">
