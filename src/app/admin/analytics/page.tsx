@@ -4,17 +4,12 @@ import { useMemo, useState } from "react";
 import type { DateRange } from "react-day-picker";
 import { useStore, avgRating } from "@/lib/store";
 import { AdminPageHeader } from "@/components/admin-shell";
-import { DateRangePicker, isWithinDateRange } from "@/components/date-range-picker";
+import { DateRangePicker, DateRangePresetFilters, getPresetRange, isWithinDateRange } from "@/components/date-range-picker";
 import { TrendingUp, Users, Package, DollarSign } from "lucide-react";
-
-const defaultRange: DateRange = {
-  from: new Date(2026, 5, 1),
-  to: new Date(2026, 7, 29),
-};
 
 export default function Analytics() {
   const { users, listings, events, giveaways } = useStore();
-  const [dateRange, setDateRange] = useState<DateRange | undefined>(defaultRange);
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(() => getPresetRange(30));
 
   const filteredListings = useMemo(
     () => listings.filter((l) => isWithinDateRange(l.createdAt, dateRange)),
@@ -80,6 +75,12 @@ export default function Analytics() {
             : "Marketplace performance at a glance"
         }
         action={<DateRangePicker value={dateRange} onChange={setDateRange} />}
+      />
+
+      <DateRangePresetFilters
+        value={dateRange}
+        onChange={setDateRange}
+        className="mb-6"
       />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

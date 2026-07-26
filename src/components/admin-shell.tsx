@@ -5,6 +5,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { useEffect, type ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
 import { useStore } from "@/lib/store";
+import { AuthNavActions } from "@/components/auth-nav-actions";
 import {
   Tooltip,
   TooltipContent,
@@ -24,7 +25,6 @@ import {
   LogOut,
   Search,
   Bell,
-  ChevronDown,
 } from "lucide-react";
 
 const rail = [
@@ -107,12 +107,12 @@ function SidebarNavButton({
 
 export function AdminShell({ children }: { children: ReactNode }) {
   const router = useRouter();
-  const { currentAdmin, loading, logout } = useStore();
+  const { currentAdmin, sessionType, loading, logout } = useStore();
   const pathname = usePathname() ?? "";
 
   useEffect(() => {
-    if (!loading && !currentAdmin) router.push("/auth/admin");
-  }, [currentAdmin, loading, router]);
+    if (!loading && (sessionType !== "admin" || !currentAdmin)) router.push("/auth/admin");
+  }, [currentAdmin, sessionType, loading, router]);
 
   if (loading || !currentAdmin) return null;
 
@@ -128,18 +128,19 @@ export function AdminShell({ children }: { children: ReactNode }) {
         </Link>
 
         <div className="flex items-center gap-2">
+          <Link
+            href="/"
+            className="hidden rounded-full bg-secondary/70 px-4 py-2.5 text-sm font-medium hover:bg-secondary sm:inline-flex"
+          >
+            Home
+          </Link>
           <button className="grid h-11 w-11 place-items-center rounded-full bg-secondary/70 hover:bg-secondary">
             <Search className="h-4 w-4" />
           </button>
           <button className="grid h-11 w-11 place-items-center rounded-full bg-secondary/70 hover:bg-secondary">
             <Bell className="h-4 w-4" />
           </button>
-          <div className="flex items-center gap-2 rounded-full bg-secondary/70 py-1 pl-1 pr-3">
-            <div className="grid h-9 w-9 place-items-center rounded-full bg-maple text-tuft text-xs font-bold">
-              {currentAdmin.name.split(" ").map((n) => n[0]).join("").slice(0, 2)}
-            </div>
-            <ChevronDown className="h-4 w-4 text-muted-foreground" />
-          </div>
+          <AuthNavActions showPoints={false} />
         </div>
       </header>
 

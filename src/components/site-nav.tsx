@@ -1,19 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useStore } from "@/lib/store";
 import { useCurrency, CURRENCIES, type Currency } from "@/lib/currency";
-import { Button } from "@/components/ui/button";
-import { LogOut, User as UserIcon } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { AuthNavActions } from "@/components/auth-nav-actions";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export function SiteNav() {
-  const { currentUser, currentAdmin, logout } = useStore();
+  const { currentAdmin, sessionType } = useStore();
   const { currency, setCurrency } = useCurrency();
-  const router = useRouter();
+  const isAdmin = sessionType === "admin" && !!currentAdmin;
 
   return (
     <header className="sticky top-0 z-40 border-b border-border/60 bg-background/85 backdrop-blur">
@@ -30,7 +26,7 @@ export function SiteNav() {
           <Link href="/browse" className="text-sm font-medium hover:text-primary transition-colors">Buy</Link>
           <Link href="/events" className="text-sm font-medium hover:text-primary transition-colors">Events</Link>
           <Link href="/giveaways" className="text-sm font-medium hover:text-primary transition-colors">Giveaways</Link>
-          {currentAdmin && (
+          {isAdmin && (
             <Link href="/admin" className="text-sm font-medium hover:text-primary transition-colors">Admin</Link>
           )}
         </nav>
@@ -49,53 +45,7 @@ export function SiteNav() {
             </SelectContent>
           </Select>
 
-          {currentAdmin ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="gap-2">
-                  <UserIcon className="h-4 w-4" />
-                  {currentAdmin.name.split(" ")[0]}
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-52">
-                <DropdownMenuLabel>Admin</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => router.push("/admin")}>Admin dashboard</DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => { logout(); router.push("/"); }}>
-                  <LogOut className="mr-2 h-4 w-4" /> Sign out
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          ) : currentUser ? (
-            <>
-              <Badge variant="secondary" className="hidden sm:inline-flex bg-secondary text-secondary-foreground">
-                {currentUser.points} pts
-              </Badge>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="gap-2">
-                    <UserIcon className="h-4 w-4" />
-                    {currentUser.name.split(" ")[0]}
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-52">
-                  <DropdownMenuLabel className="capitalize">{currentUser.role}</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => router.push("/dashboard")}>Dashboard</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => router.push(`/sellers/${currentUser.id}`)}>My profile</DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => { logout(); router.push("/"); }}>
-                    <LogOut className="mr-2 h-4 w-4" /> Sign out
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </>
-          ) : (
-            <Button size="sm" className="bg-maple text-tuft hover:bg-maple/90 border-0" onClick={() => router.push("/auth?mode=register")}>
-              Sell what you got
-            </Button>
-          )}
+          <AuthNavActions />
         </div>
       </div>
     </header>

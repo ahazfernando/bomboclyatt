@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { useEffect, type ReactNode } from "react";
 import { useStore } from "@/lib/store";
+import { AuthNavActions } from "@/components/auth-nav-actions";
 import {
   LayoutGrid,
   Package,
@@ -15,7 +16,6 @@ import {
   LogOut,
   Search,
   Bell,
-  ChevronDown,
   User,
 } from "lucide-react";
 
@@ -35,14 +35,19 @@ const sellerRail = [
 
 export function DashboardShell({ children }: { children: ReactNode }) {
   const router = useRouter();
-  const { currentUser, loading, logout } = useStore();
+  const { currentUser, currentAdmin, sessionType, loading, logout } = useStore();
   const pathname = usePathname() ?? "";
 
   useEffect(() => {
-    if (!loading && !currentUser) router.push("/auth?mode=login");
-  }, [currentUser, loading, router]);
+    if (loading) return;
+    if (sessionType === "admin" && currentAdmin) {
+      router.replace("/admin");
+      return;
+    }
+    if (!currentUser) router.push("/auth?mode=login");
+  }, [currentUser, currentAdmin, sessionType, loading, router]);
 
-  if (loading || !currentUser) return null;
+  if (loading || (sessionType === "admin" && currentAdmin) || !currentUser) return null;
 
   const isSeller = currentUser.role === "seller";
   const rail = isSeller ? sellerRail : buyerRail;
@@ -79,16 +84,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
             <button className="grid h-11 w-11 place-items-center rounded-full bg-secondary/70 hover:bg-secondary">
               <Bell className="h-4 w-4" />
             </button>
-            <div className="flex items-center gap-2 rounded-full bg-secondary/70 py-1 pl-1 pr-3">
-              <div className="grid h-9 w-9 place-items-center rounded-full bg-gradient-sun text-maple text-xs font-bold">
-                {currentUser.name.split(" ").map((n) => n[0]).join("").slice(0, 2)}
-              </div>
-              <div className="hidden text-left sm:block">
-                <div className="text-xs font-semibold capitalize">{currentUser.role}</div>
-                <div className="text-[10px] text-muted-foreground">{currentUser.name.split(" ")[0]}</div>
-              </div>
-              <ChevronDown className="h-4 w-4 text-muted-foreground" />
-            </div>
+            <AuthNavActions showPoints={false} />
           </div>
         </header>
 
