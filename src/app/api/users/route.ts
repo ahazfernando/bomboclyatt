@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerFirestore, isFirebaseConfigured } from "@/lib/firebase/server";
 import { createUser, ensureSeeded, getAllUsers } from "@/lib/firebase/db";
-import type { User } from "@/lib/store";
+import type { User } from "@/lib/types";
 
 export async function GET() {
   if (!isFirebaseConfigured()) {

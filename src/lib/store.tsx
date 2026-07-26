@@ -10,75 +10,43 @@ import {
   createGiveaway,
   createListing,
   createUser,
+  createAdmin,
+  deleteUser as deleteUserDoc,
+  deleteListing as deleteListingDoc,
   ensureSeeded,
   updateGiveaway,
   updateListing,
   updateUser,
 } from "@/lib/firebase/db";
 import { seedData } from "@/lib/firebase/seed";
+import type { User, Admin, Listing, Event, Giveaway, UserRole, SessionType } from "@/lib/types";
 
-export type Role = "buyer" | "seller" | "admin";
-
-export interface User {
-  id: string;
-  name: string;
-  email: string;
-  role: Role;
-  whatsapp?: string;
-  bio?: string;
-  avatar?: string;
-  points: number;
-  ratings: { from: string; stars: number; comment: string; date: string }[];
-}
-
-export interface Listing {
-  id: string;
-  sellerId: string;
-  title: string;
-  set: string;
-  condition: "Mint" | "Near Mint" | "Lightly Played" | "Played";
-  price: number;
-  image: string;
-  description: string;
-  category: "Sealed Product" | "Single Hits" | "Accessories" | "Slabs" | "Comics" | "Diecast";
-  sold: boolean;
-  buyerId?: string;
-  createdAt: string;
-  reviews: { from: string; stars: number; comment: string; date: string }[];
-}
-
-export interface Event {
-  id: string;
-  sellerId: string;
-  title: string;
-  description: string;
-  date: string;
-  location: string;
-  cover: string;
-}
-
-export interface Giveaway {
-  id: string;
-  sellerId: string;
-  prize: string;
-  description: string;
-  endsAt: string;
-  cover: string;
-  entrants: string[];
-  winnerId?: string;
-}
+export type { User, Admin, Listing, Event, Giveaway, UserRole, SessionType };
+export type Role = UserRole;
 
 interface Store {
   currentUser: User | null;
+  currentAdmin: Admin | null;
+  sessionType: SessionType | null;
   users: User[];
+  admins: Admin[];
   listings: Listing[];
   events: Event[];
   giveaways: Giveaway[];
   loading: boolean;
   login: (email: string) => boolean;
+  loginAdmin: (email: string) => boolean;
+  registerAdmin: (a: Omit<Admin, "id" | "createdAt">) => boolean;
   register: (u: Omit<User, "id" | "points" | "ratings">) => void;
+  adminCreateUser: (u: Omit<User, "id" | "points" | "ratings">) => boolean;
+  adminUpdateUser: (id: string, data: Partial<Omit<User, "id" | "ratings">>) => void;
+  adminDeleteUser: (id: string) => void;
   logout: () => void;
-  addListing: (l: Omit<Listing, "id" | "createdAt" | "sold" | "reviews">) => void;
+  addListing: (l: Omit<Listing, "id" | "createdAt" | "sold" | "reviews" | "views" | "clicks">) => void;
+  editListing: (id: string, data: Partial<Omit<Listing, "id" | "sellerId" | "reviews">>) => void;
+  deleteListing: (id: string) => void;
+  trackListingView: (listingId: string) => void;
+  trackListingClick: (listingId: string) => void;
   markSold: (listingId: string, buyerId: string) => void;
   confirmPurchase: (listingId: string) => void;
   rateUser: (userId: string, stars: number, comment: string) => void;
@@ -89,17 +57,58 @@ interface Store {
   drawGiveaway: (id: string) => void;
 }
 
-const LOCAL_KEY = "bomboclyatt-v1";
+const LOCAL_KEY = "bomboclyatt-v2";
 const SESSION = "bomboclyatt-session";
+const SESSION_TYPE = "bomboclyatt-session-type";
 const useFirebase = isFirebaseConfigured();
 
-function loadLocal(): Pick<Store, "users" | "listings" | "events" | "giveaways"> {
+export function normalizeListing(l: Listing): Listing {
+  return { ...l, views: l.views ?? 0, clicks: l.clicks ?? 0 };
+}
+
+type AppData = {
+  users: User[];
+  admins: Admin[];
+  listings: Listing[];
+  events: Event[];
+  giveaways: Giveaway[];
+};
+
+function loadLocal(): AppData {
   if (typeof window === "undefined") return seedData;
   try {
     const raw = localStorage.getItem(LOCAL_KEY);
-    if (raw) return JSON.parse(raw);
+    if (raw) {
+      const parsed = JSON.parse(raw) as AppData;
+      return { ...seedData, ...parsed, admins: parsed.admins ?? seedData.admins };
+    }
   } catch {}
   return seedData;
+}
+
+function restoreSession(
+  sid: string,
+  type: SessionType | null,
+  data: AppData,
+  setCurrentUser: (u: User | null) => void,
+  setCurrentAdmin: (a: Admin | null) => void,
+  setSessionType: (t: SessionType | null) => void
+) {
+  if (type === "admin") {
+    const admin = data.admins.find((x) => x.id === sid);
+    if (admin) {
+      setCurrentAdmin(admin);
+      setCurrentUser(null);
+      setSessionType("admin");
+    }
+    return;
+  }
+  const user = data.users.find((x) => x.id === sid);
+  if (user) {
+    setCurrentUser(user);
+    setCurrentAdmin(null);
+    setSessionType("user");
+  }
 }
 
 const Ctx = createContext<Store | null>(null);
@@ -107,19 +116,19 @@ const Ctx = createContext<Store | null>(null);
 export function StoreProvider({ children }: { children: ReactNode }) {
   const [hydrated, setHydrated] = useState(false);
   const [loading, setLoading] = useState(useFirebase);
-  const [data, setData] = useState(() => seedData);
+  const [data, setData] = useState<AppData>(() => seedData);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [currentAdmin, setCurrentAdmin] = useState<Admin | null>(null);
+  const [sessionType, setSessionType] = useState<SessionType | null>(null);
 
   useEffect(() => {
     const sid = localStorage.getItem(SESSION);
+    const stype = localStorage.getItem(SESSION_TYPE) as SessionType | null;
 
     if (!useFirebase) {
       const local = loadLocal();
       setData(local);
-      if (sid) {
-        const u = local.users.find((x) => x.id === sid);
-        if (u) setCurrentUser(u);
-      }
+      if (sid) restoreSession(sid, stype, local, setCurrentUser, setCurrentAdmin, setSessionType);
       setHydrated(true);
       setLoading(false);
       return;
@@ -138,13 +147,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           onSnapshot(collection(db, COLLECTIONS.users), (snap) => {
             const users = snap.docs.map((d) => d.data() as User);
             setData((prev) => ({ ...prev, users }));
-            setLoading(false);
-            setHydrated(true);
+          }),
+          onSnapshot(collection(db, COLLECTIONS.admins), (snap) => {
+            const admins = snap.docs.map((d) => d.data() as Admin);
+            setData((prev) => ({ ...prev, admins }));
           }),
           onSnapshot(collection(db, COLLECTIONS.listings), (snap) => {
             setData((prev) => ({
               ...prev,
-              listings: snap.docs.map((d) => d.data() as Listing),
+              listings: snap.docs.map((d) => normalizeListing(d.data() as Listing)),
             }));
           }),
           onSnapshot(collection(db, COLLECTIONS.events), (snap) => {
@@ -161,18 +172,31 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           })
         );
 
-        if (sid) {
+        setLoading(false);
+        setHydrated(true);
+
+        if (sid && stype === "admin") {
+          const res = await fetch(`/api/admins/${sid}`);
+          if (res.ok) {
+            const admin = await res.json();
+            setCurrentAdmin(admin);
+            setCurrentUser(null);
+            setSessionType("admin");
+          }
+        } else if (sid) {
           const res = await fetch(`/api/users/${sid}`);
-          if (res.ok) setCurrentUser(await res.json());
+          if (res.ok) {
+            const user = await res.json();
+            setCurrentUser(user);
+            setCurrentAdmin(null);
+            setSessionType("user");
+          }
         }
       } catch (error) {
         console.error("Firebase init failed, falling back to local data", error);
         const local = loadLocal();
         setData(local);
-        if (sid) {
-          const u = local.users.find((x) => x.id === sid);
-          if (u) setCurrentUser(u);
-        }
+        if (sid) restoreSession(sid, stype, local, setCurrentUser, setCurrentAdmin, setSessionType);
         setHydrated(true);
         setLoading(false);
       }
@@ -191,18 +215,44 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, [data, hydrated]);
 
   useEffect(() => {
-    if (currentUser) {
+    if (sessionType === "user" && currentUser) {
       const updated = data.users.find((u) => u.id === currentUser.id);
       if (updated && JSON.stringify(updated) !== JSON.stringify(currentUser)) {
         setCurrentUser(updated);
       }
     }
-  }, [data.users, currentUser]);
+    if (sessionType === "admin" && currentAdmin) {
+      const updated = data.admins.find((a) => a.id === currentAdmin.id);
+      if (updated && JSON.stringify(updated) !== JSON.stringify(currentAdmin)) {
+        setCurrentAdmin(updated);
+      }
+    }
+  }, [data.users, data.admins, currentUser, currentAdmin, sessionType]);
 
   const persistUser = (u: User | null) => {
     setCurrentUser(u);
-    if (u) localStorage.setItem(SESSION, u.id);
-    else localStorage.removeItem(SESSION);
+    setCurrentAdmin(null);
+    setSessionType(u ? "user" : null);
+    if (u) {
+      localStorage.setItem(SESSION, u.id);
+      localStorage.setItem(SESSION_TYPE, "user");
+    } else {
+      localStorage.removeItem(SESSION);
+      localStorage.removeItem(SESSION_TYPE);
+    }
+  };
+
+  const persistAdmin = (a: Admin | null) => {
+    setCurrentAdmin(a);
+    setCurrentUser(null);
+    setSessionType(a ? "admin" : null);
+    if (a) {
+      localStorage.setItem(SESSION, a.id);
+      localStorage.setItem(SESSION_TYPE, "admin");
+    } else {
+      localStorage.removeItem(SESSION);
+      localStorage.removeItem(SESSION_TYPE);
+    }
   };
 
   const patchListing = async (listingId: string, patch: Partial<Listing>) => {
@@ -229,6 +279,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const store: Store = {
     currentUser,
+    currentAdmin,
+    sessionType,
     loading,
     ...data,
     login: (email) => {
@@ -239,6 +291,26 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       }
       return false;
     },
+    loginAdmin: (email) => {
+      const a = data.admins.find((x) => x.email.toLowerCase() === email.toLowerCase());
+      if (a) {
+        persistAdmin(a);
+        return true;
+      }
+      return false;
+    },
+    registerAdmin: (a) => {
+      const exists = data.admins.some((x) => x.email.toLowerCase() === a.email.toLowerCase());
+      if (exists) return false;
+      const na: Admin = { ...a, id: `a-${Date.now()}`, createdAt: new Date().toISOString().slice(0, 10) };
+      if (useFirebase) {
+        void createAdmin(getFirestoreDb(), na);
+      } else {
+        setData((d) => ({ ...d, admins: [...d.admins, na] }));
+      }
+      persistAdmin(na);
+      return true;
+    },
     register: (u) => {
       const nu: User = { ...u, id: `u-${Date.now()}`, points: 0, ratings: [] };
       if (useFirebase) {
@@ -248,7 +320,39 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       }
       persistUser(nu);
     },
-    logout: () => persistUser(null),
+    adminCreateUser: (u) => {
+      const exists = data.users.some((x) => x.email.toLowerCase() === u.email.toLowerCase());
+      if (exists) return false;
+      const nu: User = { ...u, id: `u-${Date.now()}`, points: 0, ratings: [] };
+      if (useFirebase) {
+        void createUser(getFirestoreDb(), nu);
+      } else {
+        setData((d) => ({ ...d, users: [...d.users, nu] }));
+      }
+      return true;
+    },
+    adminUpdateUser: (id, patch) => {
+      void patchUser(id, patch);
+    },
+    adminDeleteUser: (id) => {
+      const userListings = data.listings.filter((l) => l.sellerId === id);
+      if (useFirebase) {
+        const db = getFirestoreDb();
+        void deleteUserDoc(db, id);
+        userListings.forEach((l) => void deleteListingDoc(db, l.id));
+      } else {
+        setData((d) => ({
+          ...d,
+          users: d.users.filter((u) => u.id !== id),
+          listings: d.listings.filter((l) => l.sellerId !== id),
+        }));
+      }
+      if (currentUser?.id === id) persistUser(null);
+    },
+    logout: () => {
+      persistUser(null);
+      persistAdmin(null);
+    },
     addListing: (l) => {
       const nl: Listing = {
         ...l,
@@ -256,12 +360,34 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         createdAt: new Date().toISOString().slice(0, 10),
         sold: false,
         reviews: [],
+        views: 0,
+        clicks: 0,
       };
       if (useFirebase) {
         void createListing(getFirestoreDb(), nl);
       } else {
         setData((d) => ({ ...d, listings: [nl, ...d.listings] }));
       }
+    },
+    editListing: (id, patch) => {
+      void patchListing(id, patch);
+    },
+    deleteListing: (id) => {
+      if (useFirebase) {
+        void deleteListingDoc(getFirestoreDb(), id);
+      } else {
+        setData((d) => ({ ...d, listings: d.listings.filter((l) => l.id !== id) }));
+      }
+    },
+    trackListingView: (listingId) => {
+      const listing = data.listings.find((l) => l.id === listingId);
+      if (!listing || currentUser?.id === listing.sellerId) return;
+      void patchListing(listingId, { views: (listing.views ?? 0) + 1 });
+    },
+    trackListingClick: (listingId) => {
+      const listing = data.listings.find((l) => l.id === listingId);
+      if (!listing || currentUser?.id === listing.sellerId) return;
+      void patchListing(listingId, { clicks: (listing.clicks ?? 0) + 1 });
     },
     markSold: (listingId, buyerId) => {
       void patchListing(listingId, { sold: true, buyerId });
@@ -354,4 +480,10 @@ export function useStore() {
 export function avgRating(ratings: { stars: number }[]) {
   if (!ratings.length) return 0;
   return ratings.reduce((a, r) => a + r.stars, 0) / ratings.length;
+}
+
+export function getPostLoginPath(sessionType: SessionType | null, user: User | null): string {
+  if (sessionType === "admin") return "/admin";
+  if (user?.role === "seller") return "/dashboard";
+  return "/dashboard";
 }

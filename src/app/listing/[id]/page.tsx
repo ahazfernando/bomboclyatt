@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { StarRating } from "@/components/star-rating";
 import { MessageCircle, Package, Minus, Plus, Filter, ChevronDown, ChevronRight, Check } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { ListingCard } from "@/components/listing-card";
 
@@ -18,7 +18,7 @@ export default function ListingDetail() {
   const params = useParams<{ id: string }>();
   const id = params.id;
   const router = useRouter();
-  const { listings, users, currentUser, markSold, reviewListing, rateUser } = useStore();
+  const { listings, users, currentUser, markSold, reviewListing, rateUser, trackListingView, trackListingClick } = useStore();
   const { formatPrice } = useCurrency();
   const listing = listings.find((l) => l.id === id);
   const [stars, setStars] = useState(5);
@@ -36,6 +36,14 @@ export default function ListingDetail() {
     return [base, `${base}${sep}sat=-40`, `${base}${sep}hue=25`, `${base}${sep}flip=h`];
   }, [listing?.image]);
 
+  useEffect(() => {
+    if (!listing) return;
+    const key = `viewed-${listing.id}`;
+    if (sessionStorage.getItem(key)) return;
+    sessionStorage.setItem(key, "1");
+    trackListingView(listing.id);
+  }, [listing, trackListingView]);
+
   if (!listing) return <div className="p-16 text-center">Listing not found.</div>;
 
   const seller = users.find((u) => u.id === listing.sellerId);
@@ -48,7 +56,8 @@ export default function ListingDetail() {
 
   const buy = () => {
     if (!seller?.whatsapp) { toast.error("Seller has no WhatsApp on file."); return; }
-    const msg = encodeURIComponent(`Hi ${seller.name}! I'd like to buy ${qty}× "${listing.title}" (${formatPrice(listing.price * qty)}) on Emberdex.`);
+    trackListingClick(listing.id);
+    const msg = encodeURIComponent(`Hi ${seller.name}! I'd like to buy ${qty}× "${listing.title}" (${formatPrice(listing.price * qty)}) on BomboClyatt.`);
     window.open(`https://wa.me/${seller.whatsapp}?text=${msg}`, "_blank");
     toast.success("Opening WhatsApp — the seller can mark this sold once you confirm.");
   };
@@ -182,7 +191,7 @@ export default function ListingDetail() {
               <p className="text-sm font-medium mb-2">Confirm this card was purchased</p>
               <p className="text-xs text-muted-foreground mb-3">Select the buyer — they'll earn 10 points once you confirm.</p>
               <div className="flex flex-wrap gap-2">
-                {users.filter((u) => u.role !== "admin" && u.id !== currentUser.id).map((u) => (
+                {users.filter((u) => u.id !== currentUser.id).map((u) => (
                   <Button key={u.id} size="sm" variant="outline" onClick={() => { markSold(listing.id, u.id); toast.success(`Marked sold to ${u.name}.`); }}>
                     {u.name}
                   </Button>

@@ -5,14 +5,16 @@ import {
   getDocs,
   setDoc,
   updateDoc,
+  deleteDoc,
   writeBatch,
   type Firestore,
 } from "firebase/firestore";
-import type { User, Listing, Event, Giveaway } from "@/lib/store";
+import type { User, Admin, Listing, Event, Giveaway } from "@/lib/types";
 import { seedData } from "./seed";
 
 export const COLLECTIONS = {
   users: "users",
+  admins: "admins",
   listings: "listings",
   events: "events",
   giveaways: "giveaways",
@@ -31,6 +33,9 @@ export async function ensureSeeded(db: Firestore): Promise<void> {
   }
 
   const batch = writeBatch(db);
+  for (const admin of seedData.admins) {
+    batch.set(doc(db, COLLECTIONS.admins, admin.id), admin);
+  }
   for (const user of seedData.users) {
     batch.set(doc(db, COLLECTIONS.users, user.id), user);
   }
@@ -66,6 +71,29 @@ export async function updateUser(db: Firestore, id: string, data: Partial<User>)
   await updateDoc(doc(db, COLLECTIONS.users, id), data);
 }
 
+export async function deleteUser(db: Firestore, id: string): Promise<void> {
+  await deleteDoc(doc(db, COLLECTIONS.users, id));
+}
+
+export async function getAllAdmins(db: Firestore): Promise<Admin[]> {
+  const snap = await getDocs(collection(db, COLLECTIONS.admins));
+  return snap.docs.map((d) => d.data() as Admin);
+}
+
+export async function getAdmin(db: Firestore, id: string): Promise<Admin | null> {
+  const snap = await getDoc(doc(db, COLLECTIONS.admins, id));
+  return snap.exists() ? (snap.data() as Admin) : null;
+}
+
+export async function createAdmin(db: Firestore, admin: Admin): Promise<Admin> {
+  await setDoc(doc(db, COLLECTIONS.admins, admin.id), admin);
+  return admin;
+}
+
+export async function updateAdmin(db: Firestore, id: string, data: Partial<Admin>): Promise<void> {
+  await updateDoc(doc(db, COLLECTIONS.admins, id), data);
+}
+
 export async function getAllListings(db: Firestore): Promise<Listing[]> {
   const snap = await getDocs(collection(db, COLLECTIONS.listings));
   return snap.docs.map((d) => d.data() as Listing);
@@ -87,6 +115,10 @@ export async function updateListing(
   data: Partial<Listing>
 ): Promise<void> {
   await updateDoc(doc(db, COLLECTIONS.listings, id), data);
+}
+
+export async function deleteListing(db: Firestore, id: string): Promise<void> {
+  await deleteDoc(doc(db, COLLECTIONS.listings, id));
 }
 
 export async function getAllEvents(db: Firestore): Promise<Event[]> {

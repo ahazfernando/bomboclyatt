@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 
 export default function AdminOverview() {
-  const { currentUser, users, listings } = useStore();
+  const { currentUser, users, listings, currentAdmin } = useStore();
   const [range, setRange] = useState<"Monthly" | "Annually">("Annually");
 
   const metrics = useMemo(() => {
@@ -32,7 +32,9 @@ export default function AdminOverview() {
     [listings]
   );
 
-  if (!currentUser) return null;
+  if (!currentAdmin) return null;
+
+  const displayName = currentAdmin.name;
 
   const bars = [
     { m: "JAN", v: 2.4 },
@@ -48,7 +50,7 @@ export default function AdminOverview() {
     <div>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
         <h1 className="display text-5xl sm:text-6xl">
-          Welcome Back, <span className="text-muted-foreground/70">{currentUser.name.split(" ")[0]}</span>
+          Welcome Back, <span className="text-muted-foreground/70">{displayName.split(" ")[0]}</span>
         </h1>
         <div className="flex items-center gap-2">
           <button className="flex items-center gap-2 rounded-full bg-background px-4 py-3 text-sm shadow-card">
@@ -56,7 +58,7 @@ export default function AdminOverview() {
             <span className="font-medium">29 Jun, 2026 – 29 August, 2026</span>
             <ChevronDown className="h-4 w-4 text-muted-foreground" />
           </button>
-          <Link href="/dashboard">
+          <Link href="/dashboard/listings">
             <Button className="rounded-full h-11 px-5">
               <Plus className="h-4 w-4" /> Add New Listing
             </Button>

@@ -11,7 +11,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export function SiteNav() {
-  const { currentUser, logout } = useStore();
+  const { currentUser, currentAdmin, logout } = useStore();
   const { currency, setCurrency } = useCurrency();
   const router = useRouter();
 
@@ -30,7 +30,7 @@ export function SiteNav() {
           <Link href="/browse" className="text-sm font-medium hover:text-primary transition-colors">Buy</Link>
           <Link href="/events" className="text-sm font-medium hover:text-primary transition-colors">Events</Link>
           <Link href="/giveaways" className="text-sm font-medium hover:text-primary transition-colors">Giveaways</Link>
-          {currentUser?.role === "admin" && (
+          {currentAdmin && (
             <Link href="/admin" className="text-sm font-medium hover:text-primary transition-colors">Admin</Link>
           )}
         </nav>
@@ -49,7 +49,25 @@ export function SiteNav() {
             </SelectContent>
           </Select>
 
-          {currentUser ? (
+          {currentAdmin ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-2">
+                  <UserIcon className="h-4 w-4" />
+                  {currentAdmin.name.split(" ")[0]}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-52">
+                <DropdownMenuLabel>Admin</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => router.push("/admin")}>Admin dashboard</DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => { logout(); router.push("/"); }}>
+                  <LogOut className="mr-2 h-4 w-4" /> Sign out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : currentUser ? (
             <>
               <Badge variant="secondary" className="hidden sm:inline-flex bg-secondary text-secondary-foreground">
                 {currentUser.points} pts

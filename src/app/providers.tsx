@@ -12,14 +12,17 @@ export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(() => new QueryClient());
   const pathname = usePathname();
   const isAdmin = pathname?.startsWith("/admin") ?? false;
+  const isAuth = pathname?.startsWith("/auth") ?? false;
+  const isDashboard = pathname?.startsWith("/dashboard") ?? false;
+  const showSiteChrome = !isAdmin && !isAuth && !isDashboard;
 
   return (
     <QueryClientProvider client={queryClient}>
       <StoreProvider>
         <CurrencyProvider>
-          {!isAdmin && <SiteNav />}
+          {showSiteChrome && <SiteNav />}
           {children}
-          {!isAdmin && <SiteFooter />}
+          {showSiteChrome && <SiteFooter />}
           <Toaster />
         </CurrencyProvider>
       </StoreProvider>

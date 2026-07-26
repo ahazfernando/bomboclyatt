@@ -8,7 +8,7 @@ import { Gift, Users, Trophy } from "lucide-react";
 import { toast } from "sonner";
 
 export default function Giveaways() {
-  const { giveaways, users, currentUser, enterGiveaway, drawGiveaway } = useStore();
+  const { giveaways, users, currentUser, currentAdmin, enterGiveaway, drawGiveaway } = useStore();
 
   return (
     <div className="mx-auto max-w-6xl px-6 py-12">
@@ -20,7 +20,7 @@ export default function Giveaways() {
           const host = users.find((u) => u.id === g.sellerId);
           const winner = g.winnerId ? users.find((u) => u.id === g.winnerId) : null;
           const entered = currentUser ? g.entrants.includes(currentUser.id) : false;
-          const isHost = currentUser?.id === g.sellerId || currentUser?.role === "admin";
+          const isHost = currentUser?.id === g.sellerId || !!currentAdmin;
           return (
             <article key={g.id} className="overflow-hidden rounded-2xl bg-card shadow-card">
               <div className="relative aspect-[16/9] overflow-hidden bg-muted">

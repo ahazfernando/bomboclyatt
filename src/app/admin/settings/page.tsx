@@ -9,14 +9,14 @@ import { toast } from "sonner";
 
 export default function SettingsPage() {
   const router = useRouter();
-  const { currentUser, logout } = useStore();
-  const [name, setName] = useState(currentUser?.name ?? "");
-  const [email, setEmail] = useState(currentUser?.email ?? "");
-  const [bio, setBio] = useState(currentUser?.bio ?? "");
+  const { currentAdmin, logout } = useStore();
+  const [name, setName] = useState(currentAdmin?.name ?? "");
+  const [email, setEmail] = useState(currentAdmin?.email ?? "");
+  const [bio, setBio] = useState(currentAdmin?.bio ?? "");
   const [notify, setNotify] = useState({ sales: true, giveaways: true, weekly: false });
   const [theme, setTheme] = useState<"light" | "dark">("light");
 
-  if (!currentUser) return null;
+  if (!currentAdmin) return null;
 
   const save = () => toast.success("Settings saved locally");
 

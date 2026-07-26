@@ -1,17 +1,19 @@
-import type { User, Listing, Event, Giveaway } from "@/lib/store";
+import type { User, Admin, Listing, Event, Giveaway } from "@/lib/types";
 
 const img = (q: string) =>
   `https://images.unsplash.com/${q}?auto=format&fit=crop&w=800&q=80`;
 
-export const seedUsers: User[] = [
+export const seedAdmins: Admin[] = [
   {
-    id: "u-admin",
+    id: "a-1",
     name: "Ash Ketchum",
     email: "admin@bomboclyatt.com",
-    role: "admin",
-    points: 0,
-    ratings: [],
+    bio: "Platform administrator",
+    createdAt: "2026-01-01",
   },
+];
+
+export const seedUsers: User[] = [
   {
     id: "u-1",
     name: "Misty Waters",
@@ -69,6 +71,8 @@ export const seedListings: Listing[] = [
     sold: false,
     createdAt: "2026-06-20",
     reviews: [],
+    views: 124,
+    clicks: 18,
   },
   {
     id: "l-2",
@@ -83,6 +87,8 @@ export const seedListings: Listing[] = [
     sold: false,
     createdAt: "2026-06-22",
     reviews: [],
+    views: 89,
+    clicks: 12,
   },
   {
     id: "l-3",
@@ -97,6 +103,8 @@ export const seedListings: Listing[] = [
     sold: false,
     createdAt: "2026-06-25",
     reviews: [],
+    views: 56,
+    clicks: 7,
   },
   {
     id: "l-4",
@@ -111,6 +119,8 @@ export const seedListings: Listing[] = [
     sold: false,
     createdAt: "2026-06-28",
     reviews: [],
+    views: 203,
+    clicks: 31,
   },
   {
     id: "l-5",
@@ -125,6 +135,8 @@ export const seedListings: Listing[] = [
     sold: false,
     createdAt: "2026-07-01",
     reviews: [],
+    views: 67,
+    clicks: 9,
   },
   {
     id: "l-6",
@@ -139,6 +151,8 @@ export const seedListings: Listing[] = [
     sold: false,
     createdAt: "2026-07-03",
     reviews: [],
+    views: 312,
+    clicks: 44,
   },
 ];
 
@@ -177,6 +191,7 @@ export const seedGiveaways: Giveaway[] = [
 
 export const seedData = {
   users: seedUsers,
+  admins: seedAdmins,
   listings: seedListings,
   events: seedEvents,
   giveaways: seedGiveaways,

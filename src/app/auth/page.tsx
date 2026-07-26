@@ -1,115 +1,272 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
-import { useStore, type Role } from "@/lib/store";
+import { AuthShell } from "@/components/auth/auth-shell";
+import { AuthDivider, AuthField, GithubIcon, GoogleIcon, SocialButton } from "@/components/auth/auth-form";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { isFirebaseConfigured } from "@/lib/firebase/config";
+import {
+  signInWithEmail,
+  signInWithGithub,
+  signInWithGoogle,
+  signUpWithEmail,
+} from "@/lib/firebase/auth";
+import { useStore } from "@/lib/store";
 import { toast } from "sonner";
 
 function AuthContent() {
   const searchParams = useSearchParams();
   const mode = searchParams.get("mode") === "register" ? "register" : "login";
   const router = useRouter();
-  const { login, register, users } = useStore();
+  const { login, register } = useStore();
 
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
-  const [name, setName] = useState("");
-  const [role, setRole] = useState<Role>("buyer");
-  const [whatsapp, setWhatsapp] = useState("");
-  const [bio, setBio] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const finishAuth = (userEmail: string, name?: string) => {
+    if (login(userEmail)) {
+      toast.success("Welcome back!");
+      router.push("/dashboard");
+      return;
+    }
+    if (name) {
+      register({ name, email: userEmail, role: "buyer" });
+      toast.success("Account created!");
+      router.push("/dashboard");
+      return;
+    }
+    register({ name: userEmail.split("@")[0], email: userEmail, role: "buyer" });
+    toast.success("Account created!");
+    router.push("/dashboard");
+  };
+
+  const handleSocial = async (provider: "google" | "github") => {
+    if (!isFirebaseConfigured()) {
+      toast.error("Firebase is not configured.");
+      return;
+    }
+    setLoading(true);
+    try {
+      const cred =
+        provider === "google" ? await signInWithGoogle() : await signInWithGithub();
+      const displayName = cred.user.displayName ?? cred.user.email?.split("@")[0] ?? "User";
+      finishAuth(cred.user.email ?? "", displayName);
+    } catch {
+      toast.error("Social sign-in failed. Try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSignUp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!firstName || !lastName || !email || !password) {
+      toast.error("Please fill in all fields.");
+      return;
+    }
+    if (password.length < 8) {
+      toast.error("Password must be at least 8 characters.");
+      return;
+    }
+    setLoading(true);
+    const fullName = `${firstName} ${lastName}`.trim();
+    try {
+      if (isFirebaseConfigured()) {
+        await signUpWithEmail(email, password);
+      }
+      register({ name: fullName, email, role: "buyer" });
+      toast.success("Account created!");
+      router.push("/dashboard");
+    } catch {
+      toast.error("Could not create account. Email may already be in use.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSignIn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || !password) {
+      toast.error("Please enter your email and password.");
+      return;
+    }
+    setLoading(true);
+    try {
+      if (isFirebaseConfigured()) {
+        await signInWithEmail(email, password);
+      }
+      if (login(email)) {
+        toast.success("Signed in!");
+        router.push("/dashboard");
+      } else {
+        toast.error("No account found with that email.");
+      }
+    } catch {
+      toast.error("Invalid email or password.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (mode === "register") {
+    return (
+      <AuthShell mode="register" activeStep={1}>
+        <div>
+          <h2 className="text-3xl font-semibold text-white">Sign Up Account</h2>
+          <p className="mt-2 text-sm text-white/50">Enter your personal data to create your account.</p>
+        </div>
+
+        <div className="mt-8 flex gap-3">
+          <SocialButton
+            label="Google"
+            icon={<GoogleIcon />}
+            onClick={() => handleSocial("google")}
+            disabled={loading}
+          />
+          <SocialButton
+            label="Github"
+            icon={<GithubIcon />}
+            onClick={() => handleSocial("github")}
+            disabled={loading}
+          />
+        </div>
+
+        <AuthDivider />
+
+        <form onSubmit={handleSignUp} className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <AuthField
+              id="firstName"
+              label="First Name"
+              placeholder="eg. John"
+              value={firstName}
+              onChange={setFirstName}
+            />
+            <AuthField
+              id="lastName"
+              label="Last Name"
+              placeholder="eg. Franklin"
+              value={lastName}
+              onChange={setLastName}
+            />
+          </div>
+          <AuthField
+            id="email"
+            label="Email"
+            type="email"
+            placeholder="eg. johnfranklin@example.com"
+            value={email}
+            onChange={setEmail}
+          />
+          <AuthField
+            id="password"
+            label="Password"
+            placeholder="Enter your password"
+            value={password}
+            onChange={setPassword}
+            hint="Must be at least 8 characters."
+            showToggle
+            visible={showPassword}
+            onToggle={() => setShowPassword((v) => !v)}
+          />
+
+          <Button
+            type="submit"
+            disabled={loading}
+            className="mt-2 h-12 w-full rounded-xl bg-white text-base font-semibold text-black hover:bg-white/90"
+          >
+            {loading ? "Creating account…" : "Sign Up"}
+          </Button>
+        </form>
+
+        <p className="mt-8 text-center text-sm text-white/50">
+          Already have an account?{" "}
+          <Link href="/auth?mode=login" className="font-medium text-white hover:underline">
+            Log in
+          </Link>
+        </p>
+        <p className="mt-3 text-center text-sm text-white/40">
+          Platform admin?{" "}
+          <Link href="/auth/admin?mode=register" className="font-medium text-white/70 hover:underline">
+            Admin sign up
+          </Link>
+        </p>
+      </AuthShell>
+    );
+  }
 
   return (
-    <div className="mx-auto max-w-md px-6 py-16">
-      <h1 className="display text-4xl text-center mb-2">Welcome to Emberdex</h1>
-      <p className="text-center text-muted-foreground mb-8">Prototype auth — no passwords, just pick your account.</p>
+    <AuthShell mode="login" activeStep={1}>
+      <div>
+        <h2 className="text-3xl font-semibold text-white">Sign In Account</h2>
+        <p className="mt-2 text-sm text-white/50">Enter your credentials to access your account.</p>
+      </div>
 
-      <Tabs defaultValue={mode}>
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="login">Sign in</TabsTrigger>
-          <TabsTrigger value="register">Create account</TabsTrigger>
-        </TabsList>
+      <div className="mt-8 flex gap-3">
+        <SocialButton
+          label="Google"
+          icon={<GoogleIcon />}
+          onClick={() => handleSocial("google")}
+          disabled={loading}
+        />
+        <SocialButton
+          label="Github"
+          icon={<GithubIcon />}
+          onClick={() => handleSocial("github")}
+          disabled={loading}
+        />
+      </div>
 
-        <TabsContent value="login" className="mt-6 space-y-4">
-          <div className="rounded-xl border border-border bg-card p-4">
-            <p className="text-sm font-medium mb-3">Quick demo sign-in</p>
-            <div className="space-y-2">
-              {users.map((u) => (
-                <button
-                  key={u.id}
-                  onClick={() => { login(u.email); toast.success(`Signed in as ${u.name}`); router.push("/dashboard"); }}
-                  className="flex w-full items-center justify-between rounded-lg border border-border p-3 text-left hover:border-primary transition-colors"
-                >
-                  <div>
-                    <div className="font-medium">{u.name}</div>
-                    <div className="text-xs text-muted-foreground capitalize">{u.role} · {u.email}</div>
-                  </div>
-                  <span className="text-xs text-primary">Sign in →</span>
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="pt-2">
-            <Label>Or by email</Label>
-            <Input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@email.com" className="mt-1" />
-            <Button
-              className="mt-3 w-full bg-primary"
-              onClick={() => {
-                if (login(email)) { toast.success("Signed in"); router.push("/dashboard"); }
-                else toast.error("No account with that email.");
-              }}
-            >
-              Sign in
-            </Button>
-          </div>
-        </TabsContent>
+      <AuthDivider />
 
-        <TabsContent value="register" className="mt-6 space-y-4">
-          <div>
-            <Label>Name</Label>
-            <Input value={name} onChange={(e) => setName(e.target.value)} className="mt-1" />
-          </div>
-          <div>
-            <Label>Email</Label>
-            <Input value={email} onChange={(e) => setEmail(e.target.value)} className="mt-1" />
-          </div>
-          <div>
-            <Label>Role</Label>
-            <div className="mt-1 grid grid-cols-3 gap-2">
-              {(["buyer", "seller", "admin"] as Role[]).map((r) => (
-                <Button key={r} type="button" variant={role === r ? "default" : "outline"} onClick={() => setRole(r)} className="capitalize">
-                  {r}
-                </Button>
-              ))}
-            </div>
-          </div>
-          {role !== "admin" && (
-            <div>
-              <Label>WhatsApp number (with country code, digits only)</Label>
-              <Input value={whatsapp} onChange={(e) => setWhatsapp(e.target.value.replace(/\D/g, ""))} placeholder="15551234567" className="mt-1" />
-            </div>
-          )}
-          <div>
-            <Label>Bio (optional)</Label>
-            <Textarea value={bio} onChange={(e) => setBio(e.target.value)} className="mt-1" />
-          </div>
-          <Button
-            className="w-full bg-gradient-hero text-primary-foreground border-0"
-            onClick={() => {
-              if (!name || !email) { toast.error("Name and email required."); return; }
-              register({ name, email, role, whatsapp, bio });
-              toast.success("Welcome to Emberdex!");
-              router.push("/dashboard");
-            }}
-          >
-            Create account
-          </Button>
-        </TabsContent>
-      </Tabs>
-    </div>
+      <form onSubmit={handleSignIn} className="space-y-4">
+        <AuthField
+          id="email"
+          label="Email"
+          type="email"
+          placeholder="eg. johnfranklin@example.com"
+          value={email}
+          onChange={setEmail}
+        />
+        <AuthField
+          id="password"
+          label="Password"
+          placeholder="Enter your password"
+          value={password}
+          onChange={setPassword}
+          showToggle
+          visible={showPassword}
+          onToggle={() => setShowPassword((v) => !v)}
+        />
+
+        <Button
+          type="submit"
+          disabled={loading}
+          className="mt-2 h-12 w-full rounded-xl bg-white text-base font-semibold text-black hover:bg-white/90"
+        >
+          {loading ? "Signing in…" : "Sign In"}
+        </Button>
+      </form>
+
+      <p className="mt-8 text-center text-sm text-white/50">
+        Don&apos;t have an account?{" "}
+        <Link href="/auth?mode=register" className="font-medium text-white hover:underline">
+          Sign up
+        </Link>
+      </p>
+      <p className="mt-3 text-center text-sm text-white/40">
+        Platform admin?{" "}
+        <Link href="/auth/admin?mode=login" className="font-medium text-white/70 hover:underline">
+          Admin sign in
+        </Link>
+      </p>
+    </AuthShell>
   );
 }
 

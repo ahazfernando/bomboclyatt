@@ -3,14 +3,17 @@
 import Link from "next/link";
 import type { Listing } from "@/lib/store";
 import { useCurrency } from "@/lib/currency";
+import { useStore } from "@/lib/store";
 import { Badge } from "@/components/ui/badge";
 
 export function ListingRow({ listing }: { listing: Listing }) {
   const { formatPrice } = useCurrency();
+  const { trackListingClick } = useStore();
 
   return (
     <Link
       href={`/listing/${listing.id}`}
+      onClick={() => trackListingClick(listing.id)}
       className="group flex gap-5 rounded-xl border border-border bg-card p-4 transition-all hover:border-accent/50 hover:shadow-card"
     >
       <div className="h-40 w-40 shrink-0 overflow-hidden rounded-lg bg-muted">
