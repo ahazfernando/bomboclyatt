@@ -6,9 +6,10 @@ import { useStore } from "@/lib/store";
 import { useCurrency } from "@/lib/currency";
 import { Button } from "@/components/ui/button";
 import { ArrowUpRight, Plus, ChevronDown, CreditCard, Calendar, Eye, MousePointerClick } from "lucide-react";
+import { SellerIncomingOffers } from "@/components/seller-incoming-offers";
 
 export default function DashboardOverview() {
-  const { currentUser, listings } = useStore();
+  const { currentUser, listings, listingOffers } = useStore();
   const { formatPrice } = useCurrency();
   const [range, setRange] = useState<"Monthly" | "Annually">("Annually");
 
@@ -37,9 +38,16 @@ export default function DashboardOverview() {
     };
   }, [myListings, myPurchases, currentUser?.points]);
 
+  const isSeller = currentUser?.role === "seller";
+
+  const pendingOfferCount = useMemo(() => {
+    if (!isSeller || !currentUser) return 0;
+    const myIds = new Set(myListings.map((l) => l.id));
+    return listingOffers.filter((o) => o.status === "pending" && myIds.has(o.listingId)).length;
+  }, [isSeller, currentUser, myListings, listingOffers]);
+
   if (!currentUser) return null;
 
-  const isSeller = currentUser.role === "seller";
   const bars = [
     { m: "JAN", v: 1.2 },
     { m: "FEB", v: 1.6 },
@@ -193,6 +201,20 @@ export default function DashboardOverview() {
           </div>
         </div>
       </div>
+
+      {isSeller && (
+        <section className="mt-8">
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="display text-2xl">Buyer offers</h2>
+            {pendingOfferCount > 0 && (
+              <span className="text-sm text-muted-foreground">
+                {pendingOfferCount} pending review{pendingOfferCount !== 1 ? "s" : ""}
+              </span>
+            )}
+          </div>
+          <SellerIncomingOffers />
+        </section>
+      )}
     </div>
   );
 }

@@ -40,6 +40,7 @@ import { Eye, MousePointerClick, Pencil, Plus, Trash2, ExternalLink, Rocket } fr
 import { Checkbox } from "@/components/ui/checkbox";
 import { BoostListingsDialog } from "@/components/boost-listings-dialog";
 import { isListingBoosted, getBoostTimeRemaining } from "@/lib/boost";
+import { SellerIncomingOffers } from "@/components/seller-incoming-offers";
 
 const categories = ["Sealed Product", "Single Hits", "Accessories", "Slabs", "Comics", "Diecast"] as const;
 const conditions = ["Mint", "Near Mint", "Lightly Played", "Played"] as const;
@@ -267,6 +268,12 @@ export function MyListingsPortal() {
 
   return (
     <section className="mt-12">
+      {currentUser?.role === "seller" && (
+        <div className="mb-10">
+          <SellerIncomingOffers />
+        </div>
+      )}
+
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="display text-3xl">My listings portal</h2>

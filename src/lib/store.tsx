@@ -18,6 +18,9 @@ import {
   updateListing,
   updateUser,
   createBoostTransaction,
+  createListingOffer,
+  updateListingOffer,
+  createListingBid,
 } from "@/lib/firebase/db";
 import { seedData } from "@/lib/firebase/seed";
 import { calculateBoostTotal, computeBoostedUntil, type BoostPlanId } from "@/lib/boost";
@@ -187,6 +190,18 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             setData((prev) => ({
               ...prev,
               boostTransactions: snap.docs.map((d) => d.data() as BoostTransaction),
+            }));
+          }),
+          onSnapshot(collection(db, COLLECTIONS.listingOffers), (snap) => {
+            setData((prev) => ({
+              ...prev,
+              listingOffers: snap.docs.map((d) => d.data() as ListingOffer),
+            }));
+          }),
+          onSnapshot(collection(db, COLLECTIONS.listingBids), (snap) => {
+            setData((prev) => ({
+              ...prev,
+              listingBids: snap.docs.map((d) => d.data() as ListingBid),
             }));
           })
         );
@@ -579,6 +594,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         createdAt: new Date().toISOString(),
       };
       setData((d) => ({ ...d, listingOffers: [offer, ...d.listingOffers] }));
+      if (useFirebase) {
+        void createListingOffer(getFirestoreDb(), offer);
+      }
       return { ok: true };
     },
     placeBid: (listingId, amount) => {
@@ -602,6 +620,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         createdAt: new Date().toISOString(),
       };
       setData((d) => ({ ...d, listingBids: [bid, ...d.listingBids] }));
+      if (useFirebase) {
+        void createListingBid(getFirestoreDb(), bid);
+      }
       return { ok: true };
     },
     respondToOffer: (offerId, status) => {
@@ -609,6 +630,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         ...d,
         listingOffers: d.listingOffers.map((o) => (o.id === offerId ? { ...o, status } : o)),
       }));
+      if (useFirebase) {
+        void updateListingOffer(getFirestoreDb(), offerId, { status });
+      }
     },
   };
 

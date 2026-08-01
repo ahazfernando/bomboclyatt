@@ -9,7 +9,7 @@ import {
   writeBatch,
   type Firestore,
 } from "firebase/firestore";
-import type { User, Admin, Listing, Event, Giveaway, BoostTransaction, Conversation, Message } from "@/lib/types";
+import type { User, Admin, Listing, Event, Giveaway, BoostTransaction, Conversation, Message, ListingOffer, ListingBid } from "@/lib/types";
 import { seedData } from "./seed";
 
 export const COLLECTIONS = {
@@ -21,6 +21,8 @@ export const COLLECTIONS = {
   boostTransactions: "boostTransactions",
   conversations: "conversations",
   messages: "messages",
+  listingOffers: "listingOffers",
+  listingBids: "listingBids",
   meta: "meta",
 } as const;
 
@@ -50,6 +52,12 @@ export async function ensureSeeded(db: Firestore): Promise<void> {
   }
   for (const giveaway of seedData.giveaways) {
     batch.set(doc(db, COLLECTIONS.giveaways, giveaway.id), giveaway);
+  }
+  for (const offer of seedData.listingOffers) {
+    batch.set(doc(db, COLLECTIONS.listingOffers, offer.id), offer);
+  }
+  for (const bid of seedData.listingBids) {
+    batch.set(doc(db, COLLECTIONS.listingBids, bid.id), bid);
   }
   batch.set(metaRef, { seeded: true, seededAt: new Date().toISOString() });
   await batch.commit();
@@ -163,6 +171,24 @@ export async function createBoostTransaction(
 export async function getAllBoostTransactions(db: Firestore): Promise<BoostTransaction[]> {
   const snap = await getDocs(collection(db, COLLECTIONS.boostTransactions));
   return snap.docs.map((d) => d.data() as BoostTransaction);
+}
+
+export async function createListingOffer(db: Firestore, offer: ListingOffer): Promise<ListingOffer> {
+  await setDoc(doc(db, COLLECTIONS.listingOffers, offer.id), offer);
+  return offer;
+}
+
+export async function updateListingOffer(
+  db: Firestore,
+  id: string,
+  data: Partial<ListingOffer>
+): Promise<void> {
+  await updateDoc(doc(db, COLLECTIONS.listingOffers, id), data);
+}
+
+export async function createListingBid(db: Firestore, bid: ListingBid): Promise<ListingBid> {
+  await setDoc(doc(db, COLLECTIONS.listingBids, bid.id), bid);
+  return bid;
 }
 
 export async function getConversation(db: Firestore, id: string): Promise<Conversation | null> {
