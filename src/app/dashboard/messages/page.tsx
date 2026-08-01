@@ -8,13 +8,14 @@ import { useConversations, useMessages } from "@/hooks/use-conversations";
 import { useChatSocket } from "@/hooks/use-chat-socket";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Send } from "lucide-react";
+import { Send, Headphones } from "lucide-react";
 import { toast } from "sonner";
+import { isSupportConversation } from "@/lib/chat/support";
 
 function MessagesContent() {
   const searchParams = useSearchParams();
   const initialConversation = searchParams.get("conversation");
-  const { currentUser, users, listings } = useStore();
+  const { currentUser, users, admins, listings } = useStore();
   const { conversations, loading, refresh } = useConversations(currentUser?.id);
   const [activeId, setActiveId] = useState<string | null>(initialConversation);
   const [draft, setDraft] = useState("");
@@ -35,12 +36,15 @@ function MessagesContent() {
 
   const otherParty = useMemo(() => {
     if (!activeConversation || !currentUser) return null;
+    if (isSupportConversation(activeConversation)) {
+      return admins.find((a) => a.id === activeConversation.sellerId) ?? null;
+    }
     const otherId =
       activeConversation.buyerId === currentUser.id
         ? activeConversation.sellerId
         : activeConversation.buyerId;
     return users.find((u) => u.id === otherId) ?? null;
-  }, [activeConversation, currentUser, users]);
+  }, [activeConversation, currentUser, users, admins]);
 
   const listing = useMemo(
     () => listings.find((l) => l.id === activeConversation?.listingId),
@@ -48,12 +52,20 @@ function MessagesContent() {
   );
 
   const typingName = typingUserId
-    ? users.find((u) => u.id === typingUserId)?.name?.split(" ")[0]
+    ? (admins.find((a) => a.id === typingUserId)?.name ??
+        users.find((u) => u.id === typingUserId)?.name)?.split(" ")[0]
     : null;
 
   useEffect(() => {
     if (initialConversation) setActiveId(initialConversation);
   }, [initialConversation]);
+
+  useEffect(() => {
+    if (!loading && conversations.length > 0 && !initialConversation) {
+      const support = conversations.find(isSupportConversation);
+      setActiveId((current) => current ?? support?.id ?? conversations[0]?.id ?? null);
+    }
+  }, [loading, conversations, initialConversation]);
 
   useEffect(() => {
     if (conversationId) void markRead();
@@ -79,7 +91,7 @@ function MessagesContent() {
       <div className="mb-6">
         <h1 className="display text-4xl">Messages</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Chat with buyers and sellers about listings
+          Chat with support, buyers, and sellers
           {!connected && " · Connecting…"}
         </p>
       </div>
@@ -94,8 +106,11 @@ function MessagesContent() {
             </p>
           ) : (
             conversations.map((c) => {
+              const support = isSupportConversation(c);
               const otherId = c.buyerId === currentUser.id ? c.sellerId : c.buyerId;
-              const other = users.find((u) => u.id === otherId);
+              const other = support
+                ? admins.find((a) => a.id === c.sellerId)
+                : users.find((u) => u.id === otherId);
               const item = listings.find((l) => l.id === c.listingId);
               return (
                 <button
@@ -108,12 +123,26 @@ function MessagesContent() {
                     c.id === (activeId ?? conversations[0]?.id) ? "bg-secondary" : "hover:bg-secondary/60"
                   }`}
                 >
-                  <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-gradient-sun text-xs font-bold text-primary-foreground">
-                    {other?.name?.split(" ").map((n) => n[0]).join("").slice(0, 2) ?? "?"}
+                  <div
+                    className={`grid h-10 w-10 shrink-0 place-items-center rounded-full text-xs font-bold ${
+                      support
+                        ? "bg-maple text-tuft"
+                        : "bg-gradient-sun text-primary-foreground"
+                    }`}
+                  >
+                    {support ? (
+                      <Headphones className="h-4 w-4" />
+                    ) : (
+                      other?.name?.split(" ").map((n) => n[0]).join("").slice(0, 2) ?? "?"
+                    )}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate font-semibold text-sm">{other?.name ?? "User"}</p>
-                    <p className="truncate text-xs text-muted-foreground">{item?.title ?? "Listing"}</p>
+                    <p className="truncate font-semibold text-sm">
+                      {support ? "BomboClyatt Support" : (other?.name ?? "User")}
+                    </p>
+                    <p className="truncate text-xs text-muted-foreground">
+                      {support ? "Platform support" : (item?.title ?? "Listing")}
+                    </p>
                   </div>
                 </button>
               );
@@ -125,15 +154,21 @@ function MessagesContent() {
           {activeConversation ? (
             <>
               <div className="border-b border-border px-6 py-4">
-                <p className="font-semibold">{otherParty?.name ?? "Conversation"}</p>
-                {listing && (
+                <p className="font-semibold">
+                  {activeConversation && isSupportConversation(activeConversation)
+                    ? "BomboClyatt Support"
+                    : (otherParty?.name ?? "Conversation")}
+                </p>
+                {activeConversation && isSupportConversation(activeConversation) ? (
+                  <p className="text-xs text-muted-foreground">Platform support · We typically reply within 24 hours</p>
+                ) : listing ? (
                   <Link
                     href={`/listing/${listing.id}`}
                     className="text-xs text-primary hover:underline"
                   >
                     Re: {listing.title}
                   </Link>
-                )}
+                ) : null}
               </div>
 
               <div className="flex-1 space-y-3 overflow-y-auto p-6">
@@ -144,11 +179,16 @@ function MessagesContent() {
                 ) : (
                   messages.map((m) => {
                     const mine = m.senderId === currentUser.id;
+                    const fromAdmin = admins.some((a) => a.id === m.senderId);
                     return (
                       <div key={m.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
                         <div
                           className={`max-w-[75%] rounded-2xl px-4 py-2.5 text-sm ${
-                            mine ? "bg-primary text-primary-foreground" : "bg-secondary"
+                            mine
+                              ? "bg-primary text-primary-foreground"
+                              : fromAdmin
+                                ? "bg-maple/10 border border-maple/20"
+                                : "bg-secondary"
                           }`}
                         >
                           {m.body}

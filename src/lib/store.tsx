@@ -21,9 +21,9 @@ import {
 } from "@/lib/firebase/db";
 import { seedData } from "@/lib/firebase/seed";
 import { calculateBoostTotal, computeBoostedUntil, type BoostPlanId } from "@/lib/boost";
-import type { User, Admin, Listing, Event, Giveaway, UserRole, SessionType, BoostTransaction } from "@/lib/types";
+import type { User, Admin, Listing, Event, Giveaway, UserRole, SessionType, BoostTransaction, ListingOffer, ListingBid, OfferStatus } from "@/lib/types";
 
-export type { User, Admin, Listing, Event, Giveaway, UserRole, SessionType, BoostTransaction };
+export type { User, Admin, Listing, Event, Giveaway, UserRole, SessionType, BoostTransaction, ListingOffer, ListingBid };
 export type Role = UserRole;
 
 interface Store {
@@ -36,6 +36,8 @@ interface Store {
   events: Event[];
   giveaways: Giveaway[];
   boostTransactions: BoostTransaction[];
+  listingOffers: ListingOffer[];
+  listingBids: ListingBid[];
   loading: boolean;
   login: (email: string) => boolean;
   loginAdmin: (email: string) => boolean;
@@ -60,6 +62,9 @@ interface Store {
   drawGiveaway: (id: string) => void;
   boostListings: (listingIds: string[], planId: BoostPlanId) => { ok: true } | { ok: false; reason: string };
   addWalletFunds: (amount: number) => void;
+  placeOffer: (listingId: string, amount: number, message?: string) => { ok: true } | { ok: false; reason: string };
+  placeBid: (listingId: string, amount: number) => { ok: true } | { ok: false; reason: string };
+  respondToOffer: (offerId: string, status: Exclude<OfferStatus, "pending">) => void;
 }
 
 const LOCAL_KEY = "bomboclyatt-v2";
@@ -78,6 +83,8 @@ type AppData = {
   events: Event[];
   giveaways: Giveaway[];
   boostTransactions: BoostTransaction[];
+  listingOffers: ListingOffer[];
+  listingBids: ListingBid[];
 };
 
 function loadLocal(): AppData {
@@ -86,7 +93,7 @@ function loadLocal(): AppData {
     const raw = localStorage.getItem(LOCAL_KEY);
     if (raw) {
       const parsed = JSON.parse(raw) as AppData;
-      return { ...seedData, ...parsed, admins: parsed.admins ?? seedData.admins, boostTransactions: parsed.boostTransactions ?? seedData.boostTransactions };
+      return { ...seedData, ...parsed, admins: parsed.admins ?? seedData.admins, boostTransactions: parsed.boostTransactions ?? seedData.boostTransactions, listingOffers: parsed.listingOffers ?? seedData.listingOffers, listingBids: parsed.listingBids ?? seedData.listingBids };
     }
   } catch {}
   return seedData;
@@ -549,6 +556,59 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       const balance = (currentUser.walletBalance ?? 0) + amount;
       void patchUser(currentUser.id, { walletBalance: balance });
       setCurrentUser({ ...currentUser, walletBalance: balance });
+    },
+    placeOffer: (listingId, amount, message) => {
+      if (!currentUser) return { ok: false, reason: "Sign in to make an offer." };
+      const listing = data.listings.find((l) => l.id === listingId);
+      if (!listing || listing.sold) return { ok: false, reason: "Listing unavailable." };
+      if (listing.sellerId === currentUser.id) return { ok: false, reason: "Cannot offer on your own listing." };
+      if (listing.acceptsOffers === false) return { ok: false, reason: "Seller is not accepting offers." };
+      if (amount >= listing.price) return { ok: false, reason: "Offer must be below list price." };
+      const hasPending = data.listingOffers.some(
+        (o) => o.listingId === listingId && o.buyerId === currentUser.id && o.status === "pending"
+      );
+      if (hasPending) return { ok: false, reason: "You already have a pending offer on this listing." };
+
+      const offer: ListingOffer = {
+        id: `off-${Date.now()}`,
+        listingId,
+        buyerId: currentUser.id,
+        amount,
+        message,
+        status: "pending",
+        createdAt: new Date().toISOString(),
+      };
+      setData((d) => ({ ...d, listingOffers: [offer, ...d.listingOffers] }));
+      return { ok: true };
+    },
+    placeBid: (listingId, amount) => {
+      if (!currentUser) return { ok: false, reason: "Sign in to place a bid." };
+      const listing = data.listings.find((l) => l.id === listingId);
+      if (!listing || listing.sold) return { ok: false, reason: "Listing unavailable." };
+      if (listing.sellerId === currentUser.id) return { ok: false, reason: "Cannot bid on your own listing." };
+      if (listing.acceptsBids === false) return { ok: false, reason: "Seller is not accepting bids." };
+
+      const top = data.listingBids
+        .filter((b) => b.listingId === listingId)
+        .sort((a, b) => b.amount - a.amount)[0];
+      const min = top ? top.amount + 1 : Math.max(1, Math.floor(listing.price * 0.5));
+      if (amount < min) return { ok: false, reason: `Minimum bid is ${min}.` };
+
+      const bid: ListingBid = {
+        id: `bid-${Date.now()}`,
+        listingId,
+        buyerId: currentUser.id,
+        amount,
+        createdAt: new Date().toISOString(),
+      };
+      setData((d) => ({ ...d, listingBids: [bid, ...d.listingBids] }));
+      return { ok: true };
+    },
+    respondToOffer: (offerId, status) => {
+      setData((d) => ({
+        ...d,
+        listingOffers: d.listingOffers.map((o) => (o.id === offerId ? { ...o, status } : o)),
+      }));
     },
   };
 

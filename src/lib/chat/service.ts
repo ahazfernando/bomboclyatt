@@ -22,16 +22,51 @@ import {
   localMarkMessagesRead,
 } from "@/lib/chat/local-store";
 import type { Conversation, Message } from "@/lib/types";
+import {
+  DEFAULT_SUPPORT_ADMIN_ID,
+  SUPPORT_LISTING_ID,
+  SUPPORT_WELCOME_MESSAGE,
+  sortConversations,
+} from "@/lib/chat/support";
 
 export function isConversationParticipant(conversation: Conversation, userId: string): boolean {
+  if (conversation.type === "support" || conversation.listingId === SUPPORT_LISTING_ID) {
+    return conversation.buyerId === userId;
+  }
   return conversation.buyerId === userId || conversation.sellerId === userId;
 }
 
-export async function getUserConversations(userId: string): Promise<Conversation[]> {
-  if (isFirebaseConfigured()) {
-    return firestoreGetUserConversations(getServerFirestore(), userId);
+export async function ensureSupportConversation(userId: string): Promise<Conversation> {
+  const conversation = await findOrCreateConversation({
+    type: "support",
+    buyerId: userId,
+    sellerId: DEFAULT_SUPPORT_ADMIN_ID,
+    listingId: SUPPORT_LISTING_ID,
+  });
+
+  const existingMessages = await getMessages(conversation.id, { limit: 1 });
+  if (existingMessages.length === 0) {
+    await createMessage({
+      conversationId: conversation.id,
+      senderId: DEFAULT_SUPPORT_ADMIN_ID,
+      body: SUPPORT_WELCOME_MESSAGE,
+    });
+    conversation.lastMessageAt = new Date().toISOString();
   }
-  return localGetUserConversations(userId);
+
+  return conversation;
+}
+
+export async function getUserConversations(userId: string): Promise<Conversation[]> {
+  await ensureSupportConversation(userId);
+
+  let conversations: Conversation[];
+  if (isFirebaseConfigured()) {
+    conversations = await firestoreGetUserConversations(getServerFirestore(), userId);
+  } else {
+    conversations = await localGetUserConversations(userId);
+  }
+  return sortConversations(conversations);
 }
 
 export async function getConversation(id: string): Promise<Conversation | null> {
@@ -50,10 +85,13 @@ export async function isParticipant(conversationId: string, userId: string): Pro
 }
 
 export async function findOrCreateConversation(input: {
+  type?: "listing" | "support";
   buyerId: string;
   sellerId: string;
   listingId: string;
 }): Promise<Conversation> {
+  const type = input.type ?? (input.listingId === SUPPORT_LISTING_ID ? "support" : "listing");
+
   if (isFirebaseConfigured()) {
     const db = getServerFirestore();
     const existing = await findConversationByParticipants(
@@ -66,7 +104,8 @@ export async function findOrCreateConversation(input: {
 
     const now = new Date().toISOString();
     const conversation: Conversation = {
-      id: `conv-${Date.now()}`,
+      id: type === "support" ? `conv-support-${input.buyerId}` : `conv-${Date.now()}`,
+      type,
       buyerId: input.buyerId,
       sellerId: input.sellerId,
       listingId: input.listingId,
@@ -75,7 +114,7 @@ export async function findOrCreateConversation(input: {
     };
     return firestoreCreateConversation(db, conversation);
   }
-  return localCreateConversation(input);
+  return localCreateConversation({ ...input, type });
 }
 
 export async function createMessage(input: {

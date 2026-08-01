@@ -30,6 +30,12 @@ export interface Listing {
   set: string;
   condition: "Mint" | "Near Mint" | "Lightly Played" | "Played";
   price: number;
+  /** When set and higher than price, shown as the original price with a discount. */
+  compareAtPrice?: number;
+  /** Whether buyers can submit offers below list price. */
+  acceptsOffers?: boolean;
+  /** Whether buyers can place bids (e.g. auction-style). */
+  acceptsBids?: boolean;
   image: string;
   description: string;
   category: "Sealed Product" | "Single Hits" | "Accessories" | "Slabs" | "Comics" | "Diecast";
@@ -48,6 +54,26 @@ export interface BoostTransaction {
   sellerId: string;
   listingIds: string[];
   planId: string;
+  amount: number;
+  createdAt: string;
+}
+
+export type OfferStatus = "pending" | "accepted" | "declined";
+
+export interface ListingOffer {
+  id: string;
+  listingId: string;
+  buyerId: string;
+  amount: number;
+  message?: string;
+  status: OfferStatus;
+  createdAt: string;
+}
+
+export interface ListingBid {
+  id: string;
+  listingId: string;
+  buyerId: string;
   amount: number;
   createdAt: string;
 }
@@ -77,6 +103,7 @@ export type SessionType = "user" | "admin";
 
 export interface Conversation {
   id: string;
+  type?: "listing" | "support";
   buyerId: string;
   sellerId: string;
   listingId: string;

@@ -45,6 +45,7 @@ export async function localFindConversationByParticipants(
 }
 
 export async function localCreateConversation(input: {
+  type?: "listing" | "support";
   buyerId: string;
   sellerId: string;
   listingId: string;
@@ -58,9 +59,14 @@ export async function localCreateConversation(input: {
   );
   if (existing) return existing;
 
+  const type = input.type ?? (input.listingId === "support" ? "support" : "listing");
   const now = new Date().toISOString();
   const conversation: Conversation = {
-    id: `conv-${Date.now()}-${conversationKey(input.buyerId, input.sellerId, input.listingId).slice(0, 8)}`,
+    id:
+      type === "support"
+        ? `conv-support-${input.buyerId}`
+        : `conv-${Date.now()}-${conversationKey(input.buyerId, input.sellerId, input.listingId).slice(0, 8)}`,
+    type,
     buyerId: input.buyerId,
     sellerId: input.sellerId,
     listingId: input.listingId,
@@ -90,6 +96,9 @@ export async function localIsConversationParticipant(
 ): Promise<boolean> {
   const conversation = await localGetConversation(conversationId);
   if (!conversation) return false;
+  if (conversation.type === "support" || conversation.listingId === "support") {
+    return conversation.buyerId === userId;
+  }
   return conversation.buyerId === userId || conversation.sellerId === userId;
 }
 

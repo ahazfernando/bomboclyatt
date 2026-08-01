@@ -13,6 +13,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { ListingCard } from "@/components/listing-card";
+import { ListingOffersBids } from "@/components/listing-offers-bids";
+import { listingDiscountPercent } from "@/lib/listing-pricing";
+import { Badge } from "@/components/ui/badge";
 
 type Tab = "details" | "reviews" | "faq";
 
@@ -52,6 +55,7 @@ export default function ListingDetail() {
   const seller = users.find((u) => u.id === listing.sellerId);
   const buyer = listing.buyerId ? users.find((u) => u.id === listing.buyerId) : null;
   const rating = avgRating(listing.reviews) || 4.5;
+  const discountPct = listingDiscountPercent(listing.price, listing.compareAtPrice);
   const alsoLike = listings.filter((l) => l.id !== listing.id && !l.sold).slice(0, 4);
 
   const conditions = ["Mint", "Near Mint", "Lightly Played", "Played"] as const;
@@ -132,7 +136,24 @@ export default function ListingDetail() {
             <span className="text-sm text-muted-foreground">· {listing.reviews.length} reviews</span>
           </div>
 
-          <div className="mt-5 display text-5xl text-foreground">{formatPrice(listing.price)}</div>
+          <div className="mt-5 flex flex-wrap items-end gap-3">
+            <div className="display text-5xl text-foreground">{formatPrice(listing.price)}</div>
+            {listing.compareAtPrice != null && listing.compareAtPrice > listing.price && (
+              <>
+                <span className="text-2xl text-muted-foreground line-through">
+                  {formatPrice(listing.compareAtPrice)}
+                </span>
+                {discountPct != null && (
+                  <Badge className="bg-maple text-tuft mb-1">-{discountPct}%</Badge>
+                )}
+              </>
+            )}
+          </div>
+          {listing.compareAtPrice != null && listing.compareAtPrice > listing.price && (
+            <p className="mt-1 text-sm text-maple font-medium">
+              You save {formatPrice(listing.compareAtPrice - listing.price)}
+            </p>
+          )}
 
           <p className="mt-3 text-sm text-muted-foreground max-w-md leading-relaxed">
             {listing.description}
@@ -220,6 +241,8 @@ export default function ListingDetail() {
               </div>
             )}
           </div>
+
+          {!listing.sold && <ListingOffersBids listing={listing} listPrice={listing.price} />}
 
           {isSeller && !listing.sold && currentUser && (
             <div className="mt-6 rounded-2xl border border-border p-4 bg-card">

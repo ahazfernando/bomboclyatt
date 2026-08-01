@@ -1,4 +1,4 @@
-import type { User, Admin, Listing, Event, Giveaway, BoostTransaction } from "@/lib/types";
+import type { User, Admin, Listing, Event, Giveaway, BoostTransaction, ListingOffer, ListingBid } from "@/lib/types";
 
 const img = (q: string) =>
   `https://images.unsplash.com/${q}?auto=format&fit=crop&w=800&q=80`;
@@ -148,6 +148,9 @@ export const seedListings: Listing[] = [
     set: "Evolving Skies",
     condition: "Mint",
     price: 590,
+    compareAtPrice: 695,
+    acceptsOffers: true,
+    acceptsBids: true,
     image: img("photo-1541963463532-d68292c34b19"),
     description: "The moonlight chase card.",
     category: "Single Hits",
@@ -192,6 +195,28 @@ export const seedGiveaways: Giveaway[] = [
   },
 ];
 
+export const seedListingOffers: ListingOffer[] = [
+  {
+    id: "off-1",
+    listingId: "l-6",
+    buyerId: "u-3",
+    amount: 540,
+    message: "Can pick up locally this weekend.",
+    status: "pending",
+    createdAt: "2026-07-28T10:00:00.000Z",
+  },
+];
+
+export const seedListingBids: ListingBid[] = [
+  {
+    id: "bid-1",
+    listingId: "l-6",
+    buyerId: "u-3",
+    amount: 520,
+    createdAt: "2026-07-27T14:00:00.000Z",
+  },
+];
+
 export const seedBoostTransactions: BoostTransaction[] = [];
 
 export const seedData = {
@@ -201,4 +226,6 @@ export const seedData = {
   events: seedEvents,
   giveaways: seedGiveaways,
   boostTransactions: seedBoostTransactions,
+  listingOffers: seedListingOffers,
+  listingBids: seedListingBids,
 };
