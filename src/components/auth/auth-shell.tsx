@@ -48,60 +48,64 @@ export function AuthShell({
     <div className="grid min-h-screen bg-black lg:grid-cols-2">
       {/* Left card */}
       <div className="hidden lg:flex lg:ml-6 lg:my-6 lg:min-h-[calc(100vh-3rem)]">
-        <div className="relative flex w-full flex-1 flex-col justify-between overflow-hidden rounded-3xl bg-gradient-hero p-12 shadow-glow">
-          <div
-            className="pointer-events-none absolute inset-0 opacity-40"
+        <div className="relative flex w-full flex-1 flex-col justify-between overflow-hidden rounded-3xl p-12 shadow-glow">
+          <img
+            src="/signin/Woman_sitting_laughing_armchair_2K_202607270754.jpeg"
+            alt=""
+            className="pointer-events-none absolute inset-0 h-full w-full object-cover"
             aria-hidden
-            style={{
-              background:
-                "radial-gradient(ellipse 70% 55% at 15% 35%, oklch(0.80 0.13 65 / 0.45) 0%, transparent 55%), radial-gradient(ellipse 55% 45% at 85% 75%, oklch(0.58 0.20 38 / 0.35) 0%, transparent 50%)",
-            }}
+          />
+          <div
+            className="pointer-events-none absolute inset-0 bg-black/45"
+            aria-hidden
           />
 
           <div className="relative z-10">
             <Link href="/">
               <img
-                src="/logo/BomboclyattRedesign.png"
+                src="/logo/BomboClyatt.png"
                 alt="BomboClyatt"
-                className="h-10 w-auto brightness-0 invert"
+                className="h-14 w-auto"
               />
             </Link>
           </div>
 
-          <div className="relative z-10 max-w-md">
-            <h1 className="display text-5xl leading-none text-tuft">{heading}</h1>
-            <p className="mt-4 text-base text-tuft/75">{subheading}</p>
-          </div>
+          <div className="relative z-10 mt-auto flex flex-col gap-8">
+            <div className="max-w-md">
+              <h1 className="display text-5xl leading-none text-tuft">{heading}</h1>
+              <p className="mt-4 text-base text-tuft/75">{subheading}</p>
+            </div>
 
-          <div className="relative z-10 flex gap-3">
-            {steps.map((step) => {
-              const active = step.n === activeStep;
-              return (
-                <div
-                  key={step.n}
-                  className={`flex flex-1 flex-col gap-3 rounded-2xl p-4 transition-colors ${
-                    active
-                      ? "bg-tuft text-maple shadow-card"
-                      : "border border-tuft/20 bg-maple/30 text-tuft/70 backdrop-blur-sm"
-                  }`}
-                >
+            <div className="flex gap-3">
+              {steps.map((step) => {
+                const active = step.n === activeStep;
+                return (
                   <div
-                    className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-semibold ${
-                      active ? "bg-maple text-tuft" : "bg-tuft/15 text-tuft/80"
+                    key={step.n}
+                    className={`flex flex-1 flex-col gap-3 rounded-2xl p-4 transition-colors ${
+                      active
+                        ? "bg-tuft text-maple shadow-card"
+                        : "border border-tuft/20 bg-maple/30 text-tuft/70 backdrop-blur-sm"
                     }`}
                   >
-                    {step.n}
+                    <div
+                      className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-semibold ${
+                        active ? "bg-maple text-tuft" : "bg-tuft/15 text-tuft/80"
+                      }`}
+                    >
+                      {step.n}
+                    </div>
+                    <p
+                      className={`text-sm font-medium leading-snug ${
+                        active ? "text-maple" : "text-tuft/65"
+                      }`}
+                    >
+                      {step.title}
+                    </p>
                   </div>
-                  <p
-                    className={`text-sm font-medium leading-snug ${
-                      active ? "text-maple" : "text-tuft/65"
-                    }`}
-                  >
-                    {step.title}
-                  </p>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
         </div>
       </div>
@@ -111,9 +115,9 @@ export function AuthShell({
         <div className="mb-8 lg:hidden">
           <Link href="/">
             <img
-              src="/logo/BomboclyattRedesign.png"
+              src="/logo/BomboClyatt.png"
               alt="BomboClyatt"
-              className="h-9 w-auto brightness-0 invert"
+              className="h-12 w-auto"
             />
           </Link>
         </div>

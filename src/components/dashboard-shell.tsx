@@ -6,6 +6,12 @@ import { useEffect, type ReactNode } from "react";
 import { useStore } from "@/lib/store";
 import { AuthNavActions } from "@/components/auth-nav-actions";
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
   LayoutGrid,
   Package,
   ShoppingBag,
@@ -19,6 +25,7 @@ import {
   User,
   Wallet,
   MessageSquare,
+  type LucideIcon,
 } from "lucide-react";
 
 const buyerRail = [
@@ -37,6 +44,65 @@ const sellerRail = [
   { to: "/dashboard/events", icon: Calendar, label: "Events" },
   { to: "/dashboard/giveaways", icon: Gift, label: "Giveaways" },
 ] as const;
+
+function RailLink({
+  href,
+  label,
+  icon: Icon,
+  active,
+}: {
+  href: string;
+  label: string;
+  icon: LucideIcon;
+  active: boolean;
+}) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Link
+          href={href}
+          className={`grid h-12 w-12 place-items-center rounded-2xl transition ${
+            active
+              ? "bg-maple text-tuft shadow-glow"
+              : "bg-background text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <Icon className="h-5 w-5" />
+        </Link>
+      </TooltipTrigger>
+      <TooltipContent side="right" sideOffset={12} className="rounded-full px-3 py-1.5 font-medium">
+        {label}
+      </TooltipContent>
+    </Tooltip>
+  );
+}
+
+function RailButton({
+  label,
+  icon: Icon,
+  onClick,
+}: {
+  label: string;
+  icon: LucideIcon;
+  onClick: () => void;
+}) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button
+          type="button"
+          onClick={onClick}
+          className="grid h-12 w-12 place-items-center rounded-2xl bg-background text-muted-foreground transition hover:text-foreground"
+        >
+          <Icon className="h-5 w-5" />
+        </button>
+      </TooltipTrigger>
+      <TooltipContent side="right" sideOffset={12} className="rounded-full px-3 py-1.5 font-medium">
+        {label}
+      </TooltipContent>
+    </Tooltip>
+  );
+}
 
 export function DashboardShell({ children }: { children: ReactNode }) {
   const router = useRouter();
@@ -61,8 +127,8 @@ export function DashboardShell({ children }: { children: ReactNode }) {
     to === "/dashboard" ? pathname === "/dashboard" : pathname.startsWith(to);
 
   return (
-    <div className="min-h-screen bg-secondary/40 px-3 py-4 sm:px-6 sm:py-6">
-      <div className="mx-auto max-w-[1400px] rounded-[36px] bg-background p-4 shadow-card sm:p-6">
+    <div className="min-h-screen bg-secondary/40 p-1">
+      <div className="min-h-[calc(100vh-8px)] rounded-[36px] bg-background p-4 shadow-card sm:p-6">
         <header className="flex items-center justify-between gap-4">
           <Link href="/dashboard" className="flex items-center gap-2">
             <img src="/logo/BomboclyattRedesign.png" alt="BomboClyatt" className="h-9 w-auto" />
@@ -94,50 +160,38 @@ export function DashboardShell({ children }: { children: ReactNode }) {
         </header>
 
         <div className="mt-6 grid gap-5 lg:grid-cols-[72px_1fr]">
-          <aside className="hidden flex-col items-center justify-between rounded-3xl bg-secondary/50 py-6 lg:flex">
-            <div className="flex flex-col items-center gap-3">
-              {rail.map((n) => (
-                <Link
-                  key={n.to}
-                  href={n.to}
-                  title={n.label}
-                  className={`grid h-12 w-12 place-items-center rounded-2xl transition ${
-                    isActive(n.to)
-                      ? "bg-maple text-tuft shadow-glow"
-                      : "bg-background text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  <n.icon className="h-5 w-5" />
-                </Link>
-              ))}
-            </div>
-            <div className="flex flex-col items-center gap-3">
-              <Link
-                href={`/sellers/${currentUser.id}`}
-                title="Profile"
-                className="grid h-12 w-12 place-items-center rounded-2xl bg-background text-muted-foreground hover:text-foreground"
-              >
-                <User className="h-5 w-5" />
-              </Link>
-              <Link
-                href="/"
-                title="Marketplace"
-                className="grid h-12 w-12 place-items-center rounded-2xl bg-background text-muted-foreground hover:text-foreground"
-              >
-                <Settings className="h-5 w-5" />
-              </Link>
-              <button
-                onClick={() => {
-                  logout();
-                  router.push("/");
-                }}
-                title="Sign out"
-                className="grid h-12 w-12 place-items-center rounded-2xl bg-background text-muted-foreground hover:text-foreground"
-              >
-                <LogOut className="h-5 w-5" />
-              </button>
-            </div>
-          </aside>
+          <TooltipProvider delayDuration={0}>
+            <aside className="hidden flex-col items-center justify-between rounded-3xl bg-secondary/50 py-6 lg:flex">
+              <div className="flex flex-col items-center gap-3">
+                {rail.map((n) => (
+                  <RailLink
+                    key={n.to}
+                    href={n.to}
+                    label={n.label}
+                    icon={n.icon}
+                    active={isActive(n.to)}
+                  />
+                ))}
+              </div>
+              <div className="flex flex-col items-center gap-3">
+                <RailLink
+                  href={`/sellers/${currentUser.id}`}
+                  label="Profile"
+                  icon={User}
+                  active={false}
+                />
+                <RailLink href="/" label="Marketplace" icon={Settings} active={false} />
+                <RailButton
+                  label="Sign out"
+                  icon={LogOut}
+                  onClick={() => {
+                    logout();
+                    router.push("/");
+                  }}
+                />
+              </div>
+            </aside>
+          </TooltipProvider>
 
           <div>{children}</div>
         </div>
