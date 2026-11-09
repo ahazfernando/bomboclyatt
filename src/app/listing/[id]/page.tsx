@@ -16,6 +16,7 @@ import { ListingCard } from "@/components/listing-card";
 import { ListingOffersBids } from "@/components/listing-offers-bids";
 import { listingDiscountPercent } from "@/lib/listing-pricing";
 import { Badge } from "@/components/ui/badge";
+import { isListingApproved, listingImages } from "@/lib/listing-media";
 
 type Tab = "details" | "reviews" | "faq";
 
@@ -23,7 +24,7 @@ export default function ListingDetail() {
   const params = useParams<{ id: string }>();
   const id = params.id;
   const router = useRouter();
-  const { listings, users, currentUser, markSold, reviewListing, rateUser, trackListingView, trackListingClick } = useStore();
+  const { listings, users, currentUser, currentAdmin, markSold, reviewListing, rateUser, trackListingView, trackListingClick } = useStore();
   const { formatPrice } = useCurrency();
   const listing = listings.find((l) => l.id === id);
   const [stars, setStars] = useState(5);
@@ -34,13 +35,7 @@ export default function ListingDetail() {
   const [condition, setCondition] = useState<string | null>(null);
   const [messaging, setMessaging] = useState(false);
 
-  // Derive multi-image gallery — supports 1..N images once uploads land.
-  const images = useMemo(() => {
-    const base = listing?.image;
-    if (!base) return [] as string[];
-    const sep = base.includes("?") ? "&" : "?";
-    return [base, `${base}${sep}sat=-40`, `${base}${sep}hue=25`, `${base}${sep}flip=h`];
-  }, [listing?.image]);
+  const images = useMemo(() => (listing ? listingImages(listing) : []), [listing]);
 
   useEffect(() => {
     if (!listing) return;
@@ -52,11 +47,19 @@ export default function ListingDetail() {
 
   if (!listing) return <div className="p-16 text-center">Listing not found.</div>;
 
+  const isSeller = currentUser?.id === listing.sellerId;
+  const canViewUnapproved = isSeller || !!currentAdmin;
+  if (!isListingApproved(listing) && !canViewUnapproved) {
+    return <div className="p-16 text-center">This listing is awaiting admin approval.</div>;
+  }
+
   const seller = users.find((u) => u.id === listing.sellerId);
   const buyer = listing.buyerId ? users.find((u) => u.id === listing.buyerId) : null;
   const rating = avgRating(listing.reviews) || 4.5;
   const discountPct = listingDiscountPercent(listing.price, listing.compareAtPrice);
-  const alsoLike = listings.filter((l) => l.id !== listing.id && !l.sold).slice(0, 4);
+  const alsoLike = listings
+    .filter((l) => l.id !== listing.id && !l.sold && isListingApproved(l))
+    .slice(0, 4);
 
   const conditions = ["Mint", "Near Mint", "Lightly Played", "Played"] as const;
   const activeCondition = condition ?? listing.condition;
@@ -68,8 +71,6 @@ export default function ListingDetail() {
     window.open(`https://wa.me/${seller.whatsapp}?text=${msg}`, "_blank");
     toast.success("Opening WhatsApp — the seller can mark this sold once you confirm.");
   };
-
-  const isSeller = currentUser?.id === listing.sellerId;
 
   const messageSeller = async () => {
     if (!currentUser) {
@@ -92,7 +93,7 @@ export default function ListingDetail() {
   };
 
   return (
-    <div className="mx-auto max-w-7xl px-6 py-8">
+    <div className="page-shell py-8">
       {/* Breadcrumb */}
       <nav className="text-xs text-muted-foreground flex items-center gap-1.5">
         <Link href="/" className="hover:text-primary">Home</Link>
@@ -103,6 +104,14 @@ export default function ListingDetail() {
         <ChevronRight className="h-3 w-3" />
         <span className="text-foreground">{listing.set}</span>
       </nav>
+
+      {!isListingApproved(listing) && (
+        <div className="mt-4 rounded-2xl border border-border bg-secondary/50 px-4 py-3 text-sm">
+          {listing.approvalStatus === "rejected"
+            ? "This listing was rejected by an admin and is not visible on the marketplace."
+            : "This listing is pending admin approval and is not visible on the marketplace yet."}
+        </div>
+      )}
 
       {/* Gallery + Details */}
       <div className="mt-6 grid gap-10 lg:grid-cols-[1fr_1fr]">

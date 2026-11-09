@@ -4,12 +4,12 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import { AuthShell } from "@/components/auth/auth-shell";
-import { AuthDivider, AuthField, GithubIcon, GoogleIcon, SocialButton } from "@/components/auth/auth-form";
+import { AuthDivider, AuthField, GoogleIcon, SocialButton } from "@/components/auth/auth-form";
 import { Button } from "@/components/ui/button";
 import { isFirebaseConfigured } from "@/lib/firebase/config";
 import {
+  authErrorMessage,
   signInWithEmail,
-  signInWithGithub,
   signInWithGoogle,
   signUpWithEmail,
 } from "@/lib/firebase/auth";
@@ -44,19 +44,23 @@ function AdminAuthContent() {
     }
   };
 
-  const handleSocial = async (provider: "google" | "github") => {
+  const handleGoogle = async () => {
     if (!isFirebaseConfigured()) {
       toast.error("Firebase is not configured.");
       return;
     }
     setLoading(true);
     try {
-      const cred =
-        provider === "google" ? await signInWithGoogle() : await signInWithGithub();
-      const displayName = cred.user.displayName ?? cred.user.email?.split("@")[0] ?? "Admin";
-      finishAdminAuth(cred.user.email ?? "", displayName);
-    } catch {
-      toast.error("Social sign-in failed. Try again.");
+      const cred = await signInWithGoogle();
+      const adminEmail = cred.user.email;
+      if (!adminEmail) {
+        toast.error("Google did not return an email for this account.");
+        return;
+      }
+      const displayName = cred.user.displayName ?? adminEmail.split("@")[0] ?? "Admin";
+      finishAdminAuth(adminEmail, displayName);
+    } catch (error) {
+      toast.error(authErrorMessage(error));
     } finally {
       setLoading(false);
     }
@@ -125,17 +129,11 @@ function AdminAuthContent() {
           </p>
         </div>
 
-        <div className="mt-8 flex gap-3">
+        <div className="mt-8">
           <SocialButton
-            label="Google"
+            label="Continue with Google"
             icon={<GoogleIcon />}
-            onClick={() => handleSocial("google")}
-            disabled={loading}
-          />
-          <SocialButton
-            label="Github"
-            icon={<GithubIcon />}
-            onClick={() => handleSocial("github")}
+            onClick={handleGoogle}
             disabled={loading}
           />
         </div>
@@ -213,17 +211,11 @@ function AdminAuthContent() {
         </p>
       </div>
 
-      <div className="mt-8 flex gap-3">
+      <div className="mt-8">
         <SocialButton
-          label="Google"
+          label="Continue with Google"
           icon={<GoogleIcon />}
-          onClick={() => handleSocial("google")}
-          disabled={loading}
-        />
-        <SocialButton
-          label="Github"
-          icon={<GithubIcon />}
-          onClick={() => handleSocial("github")}
+          onClick={handleGoogle}
           disabled={loading}
         />
       </div>

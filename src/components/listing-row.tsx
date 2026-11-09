@@ -6,7 +6,8 @@ import { useCurrency } from "@/lib/currency";
 import { useStore } from "@/lib/store";
 import { Badge } from "@/components/ui/badge";
 import { isListingBoosted } from "@/lib/boost";
-import { Rocket } from "lucide-react";
+import { listingPrimaryImage } from "@/lib/listing-media";
+import { Rocket, Star } from "lucide-react";
 
 export function ListingRow({ listing }: { listing: Listing }) {
   const { formatPrice } = useCurrency();
@@ -20,7 +21,7 @@ export function ListingRow({ listing }: { listing: Listing }) {
     >
       <div className="h-40 w-40 shrink-0 overflow-hidden rounded-lg bg-muted">
         <img
-          src={listing.image}
+          src={listingPrimaryImage(listing)}
           alt={listing.title}
           className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
           loading="lazy"
@@ -33,6 +34,12 @@ export function ListingRow({ listing }: { listing: Listing }) {
               {listing.condition}
             </Badge>
             <Badge variant="outline" className="border-border">{listing.category}</Badge>
+            {listing.featured && (
+              <Badge className="bg-maple text-tuft">
+                <Star className="mr-1 h-3 w-3" />
+                Featured
+              </Badge>
+            )}
             {isListingBoosted(listing) && (
               <Badge className="bg-maple text-tuft">
                 <Rocket className="mr-1 h-3 w-3" />

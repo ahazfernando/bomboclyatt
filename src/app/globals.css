@@ -123,3 +123,9 @@
 @utility bg-gradient-soft { background-image: var(--gradient-soft); }
 @utility shadow-card { box-shadow: var(--shadow-card); }
 @utility shadow-glow { box-shadow: var(--shadow-glow); }
+@utility page-shell {
+  margin-inline: auto;
+  width: 100%;
+  max-width: 1680px;
+  padding-inline: clamp(1rem, 2.5vw, 2rem);
+}

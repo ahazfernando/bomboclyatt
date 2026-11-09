@@ -32,45 +32,38 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ListingFormFields } from "@/components/my-listings-portal";
+import { ListingFormFields, type ListingForm } from "@/components/my-listings-portal";
 import { toast } from "sonner";
-import { Eye, MousePointerClick, Pencil, Plus, Trash2, ExternalLink } from "lucide-react";
-
-const categories = ["Sealed Product", "Single Hits", "Accessories", "Slabs", "Comics", "Diecast"] as const;
-const conditions = ["Mint", "Near Mint", "Lightly Played", "Played"] as const;
-
-type ListingForm = {
-  title: string;
-  set: string;
-  price: number;
-  image: string;
-  description: string;
-  category: (typeof categories)[number];
-  condition: (typeof conditions)[number];
-};
+import { Check, Eye, MousePointerClick, Pencil, Plus, Star, Trash2, ExternalLink, X } from "lucide-react";
+import {
+  DEFAULT_LISTING_IMAGE,
+  approvalLabel,
+  listingImages,
+  listingPrimaryImage,
+  normalizeListingImages,
+} from "@/lib/listing-media";
 
 const emptyForm: ListingForm = {
   title: "",
   set: "",
   price: 0,
-  image: "",
+  images: [],
   description: "",
   category: "Single Hits",
   condition: "Near Mint",
+  featured: false,
 };
-
-const defaultImage =
-  "https://images.unsplash.com/photo-1613771404784-3a5686aa7b8f?auto=format&fit=crop&w=800&q=80";
 
 function listingToForm(l: Listing): ListingForm {
   return {
     title: l.title,
     set: l.set,
     price: l.price,
-    image: l.image,
+    images: listingImages(l),
     description: l.description,
     category: l.category,
     condition: l.condition,
+    featured: l.featured ?? false,
   };
 }
 
@@ -90,7 +83,7 @@ export function AdminUserListings({ sellerId }: { sellerId: string }) {
   const stats = useMemo(
     () => ({
       total: userListings.length,
-      live: userListings.filter((l) => !l.sold).length,
+      live: userListings.filter((l) => !l.sold && l.approvalStatus === "approved").length,
       sold: userListings.filter((l) => l.sold).length,
       views: userListings.reduce((a, l) => a + (l.views ?? 0), 0),
     }),
@@ -102,19 +95,23 @@ export function AdminUserListings({ sellerId }: { sellerId: string }) {
       toast.error("Title and price are required.");
       return;
     }
+    const images = normalizeListingImages(createForm.images, DEFAULT_LISTING_IMAGE);
     addListing({
       sellerId,
       title: createForm.title,
       set: createForm.set,
       price: createForm.price,
-      image: createForm.image || defaultImage,
+      images,
+      image: images[0],
       description: createForm.description,
       category: createForm.category,
       condition: createForm.condition,
+      featured: createForm.featured,
+      approvalStatus: "approved",
     });
     setCreateForm(emptyForm);
     setCreateOpen(false);
-    toast.success("Listing created.");
+    toast.success("Listing created and approved.");
   };
 
   const handleEdit = () => {
@@ -122,14 +119,17 @@ export function AdminUserListings({ sellerId }: { sellerId: string }) {
       toast.error("Title and price are required.");
       return;
     }
+    const images = normalizeListingImages(editForm.images, DEFAULT_LISTING_IMAGE);
     editListing(editTarget.id, {
       title: editForm.title,
       set: editForm.set,
       price: editForm.price,
-      image: editForm.image || defaultImage,
+      images,
+      image: images[0],
       description: editForm.description,
       category: editForm.category,
       condition: editForm.condition,
+      featured: editForm.featured,
     });
     setEditTarget(null);
     toast.success("Listing updated.");
@@ -195,7 +195,7 @@ export function AdminUserListings({ sellerId }: { sellerId: string }) {
                 <TableRow key={l.id}>
                   <TableCell>
                     <div className="flex items-center gap-3">
-                      <img src={l.image} alt="" className="h-12 w-12 rounded-lg object-cover" />
+                      <img src={listingPrimaryImage(l)} alt="" className="h-12 w-12 rounded-lg object-cover" />
                       <div>
                         <p className="font-medium line-clamp-1">{l.title}</p>
                         <p className="text-xs text-muted-foreground">{l.category} · {l.condition}</p>
@@ -206,14 +206,52 @@ export function AdminUserListings({ sellerId }: { sellerId: string }) {
                   <TableCell className="text-center">{l.views ?? 0}</TableCell>
                   <TableCell className="text-center">{l.clicks ?? 0}</TableCell>
                   <TableCell>
-                    {l.sold ? (
-                      <Badge className="bg-destructive text-destructive-foreground">Sold</Badge>
-                    ) : (
-                      <Badge variant="outline" className="border-primary/30 text-primary">Live</Badge>
-                    )}
+                    <div className="flex flex-wrap items-center gap-2">
+                      {l.sold ? (
+                        <Badge className="bg-destructive text-destructive-foreground">Sold</Badge>
+                      ) : l.approvalStatus === "approved" ? (
+                        <Badge variant="outline" className="border-primary/30 text-primary">Live</Badge>
+                      ) : (
+                        <Badge variant="outline" className="border-border text-muted-foreground">
+                          {approvalLabel(l.approvalStatus)}
+                        </Badge>
+                      )}
+                      {l.featured && (
+                        <Badge className="bg-maple text-tuft">
+                          <Star className="mr-1 h-3 w-3" />
+                          Featured
+                        </Badge>
+                      )}
+                    </div>
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-1">
+                      {!l.sold && l.approvalStatus !== "approved" && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => {
+                            editListing(l.id, { approvalStatus: "approved" });
+                            toast.success("Listing approved.");
+                          }}
+                          aria-label="Approve"
+                        >
+                          <Check className="h-4 w-4 text-primary" />
+                        </Button>
+                      )}
+                      {!l.sold && l.approvalStatus === "pending" && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => {
+                            editListing(l.id, { approvalStatus: "rejected", featured: false });
+                            toast.success("Listing rejected.");
+                          }}
+                          aria-label="Reject"
+                        >
+                          <X className="h-4 w-4 text-destructive" />
+                        </Button>
+                      )}
                       <Button variant="ghost" size="icon" asChild>
                         <Link href={`/listing/${l.id}`} aria-label="View listing">
                           <ExternalLink className="h-4 w-4" />
@@ -240,7 +278,7 @@ export function AdminUserListings({ sellerId }: { sellerId: string }) {
                           <AlertDialogHeader>
                             <AlertDialogTitle>Delete listing?</AlertDialogTitle>
                             <AlertDialogDescription>
-                              This will permanently remove &ldquo;{l.title}&rdquo; from the marketplace.
+                              This will permanently remove &ldquo;{l.title}&rdquo;.
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>

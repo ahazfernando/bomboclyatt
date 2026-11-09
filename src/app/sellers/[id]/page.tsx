@@ -10,7 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Award } from "lucide-react";
+import { listingPrimaryImage } from "@/lib/listing-media";
+import { Award, BadgeCheck } from "lucide-react";
 
 export default function SellerProfile() {
   const params = useParams<{ id: string }>();
@@ -23,20 +24,43 @@ export default function SellerProfile() {
 
   if (!user) return <div className="p-16 text-center">User not found.</div>;
 
-  const userListings = listings.filter((l) => l.sellerId === user.id);
+  const userListings = listings.filter(
+    (l) => l.sellerId === user.id && (l.approvalStatus === "approved" || currentUser?.id === user.id)
+  );
   const purchases = listings.filter((l) => l.buyerId === user.id);
+  const initials = user.name
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
 
   return (
-    <div className="mx-auto max-w-6xl px-6 py-12">
+    <div className="page-shell py-12">
       <div className="rounded-3xl bg-gradient-hero p-8 text-primary-foreground shadow-card">
         <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
           <div className="flex items-center gap-5">
-            <div className="grid h-20 w-20 place-items-center rounded-full bg-background/20 text-4xl font-bold backdrop-blur">
-              {user.name[0]}
+            <div className="grid h-20 w-20 place-items-center overflow-hidden rounded-full bg-background/20 text-3xl font-bold backdrop-blur">
+              {user.avatar ? (
+                <img src={user.avatar} alt="" className="h-full w-full object-cover" />
+              ) : (
+                initials
+              )}
             </div>
             <div>
-              <Badge className="bg-background/20 text-primary-foreground border-0 capitalize">{user.role}</Badge>
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge className="bg-background/20 text-primary-foreground border-0 capitalize">{user.role}</Badge>
+                {user.verified && (
+                  <Badge className="border-0 bg-tuft text-maple">
+                    <BadgeCheck className="mr-1 h-3.5 w-3.5" />
+                    Verified
+                  </Badge>
+                )}
+              </div>
               <h1 className="display text-4xl mt-1">{user.name}</h1>
+              {user.username && (
+                <p className="mt-1 text-sm text-primary-foreground/80">@{user.username}</p>
+              )}
               <div className="mt-2 flex items-center gap-3">
                 <StarRating value={avgRating(user.ratings)} size={16} />
                 <span className="text-sm text-primary-foreground/80">{user.ratings.length} reviews</span>
@@ -69,7 +93,7 @@ export default function SellerProfile() {
           <div className="space-y-3">
             {purchases.map((l) => (
               <div key={l.id} className="flex items-center gap-4 rounded-xl border border-border bg-card p-4">
-                <img src={l.image} className="h-16 w-16 rounded-lg object-cover" alt="" />
+                <img src={listingPrimaryImage(l)} className="h-16 w-16 rounded-lg object-cover" alt="" />
                 <div className="flex-1">
                   <p className="font-semibold">{l.title}</p>
                   <p className="text-xs text-muted-foreground">{formatPrice(l.price)}</p>

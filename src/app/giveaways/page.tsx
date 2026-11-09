@@ -11,7 +11,7 @@ export default function Giveaways() {
   const { giveaways, users, currentUser, currentAdmin, enterGiveaway, drawGiveaway } = useStore();
 
   return (
-    <div className="mx-auto max-w-6xl px-6 py-12">
+    <div className="page-shell py-12">
       <h1 className="display text-5xl">Live giveaways</h1>
       <p className="text-muted-foreground mt-2">Free to enter. Sellers draw winners live — good luck.</p>
 

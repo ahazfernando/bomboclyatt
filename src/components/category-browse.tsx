@@ -53,7 +53,7 @@ const categories = [
 
 export function CategoryBrowse() {
   return (
-    <section className="mx-auto max-w-7xl px-6 py-16">
+    <section className="page-shell py-16">
       <h2 className="display text-center text-4xl md:text-5xl">Browse by Category</h2>
 
       <div className="mt-10 rounded-[2rem] bg-secondary/70 p-4 sm:p-5 md:rounded-[2.5rem] md:p-7">

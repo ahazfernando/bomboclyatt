@@ -13,7 +13,7 @@ export function SiteNav() {
 
   return (
     <header className="sticky top-0 z-40 border-b border-border/60 bg-background/85 backdrop-blur">
-      <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
+      <div className="page-shell flex items-center justify-between py-4">
         <Link href="/" className="flex items-center group">
           <img
             src="/logo/BomboclyattRedesign.png"
@@ -55,7 +55,7 @@ export function SiteNav() {
 export function SiteFooter() {
   return (
     <footer className="mt-24 bg-maple text-tuft">
-      <div className="mx-auto max-w-7xl px-6 py-16">
+      <div className="page-shell py-16">
         <div className="grid gap-12 lg:grid-cols-[1.5fr_1fr_1fr_auto]">
           {/* About block */}
           <div className="space-y-8">
@@ -128,8 +128,8 @@ export function SiteFooter() {
             >
               Join Emberdex
             </Link>
-            <a href="https://wa.me/12345678910" className="text-sm text-tuft/80 hover:text-crusta transition-colors">
-              +1-234-567-8910
+            <a href="https://wa.me/94777490077" className="text-sm text-tuft/80 hover:text-crusta transition-colors">
+              +94777490077
             </a>
           </div>
         </div>
@@ -159,7 +159,7 @@ export function SiteFooter() {
         {/* Bottom bar */}
         <div className="mt-8 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <p className="text-xs text-tuft/50 max-w-2xl leading-relaxed">
-            © 2026 Emberdex. All trades are between community members. Emberdex facilitates connection and reputation but is not a party to individual transactions. Prototype build.
+            © 2026 Thundrblyaz. All trades are between community members. Thundrblyaz facilitates connection and reputation but is not a party to individual transactions. Prototype build.
           </p>
           <div className="flex items-center gap-4 text-tuft/70">
             <a href="#" aria-label="Facebook" className="hover:text-crusta transition-colors">

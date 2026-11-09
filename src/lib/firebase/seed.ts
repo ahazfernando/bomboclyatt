@@ -60,107 +60,7 @@ export const seedUsers: User[] = [
   },
 ];
 
-export const seedListings: Listing[] = [
-  {
-    id: "l-1",
-    sellerId: "u-1",
-    title: "Charizard Base Set Holo",
-    set: "Base Set 1999",
-    condition: "Near Mint",
-    price: 4200,
-    image: img("photo-1613771404784-3a5686aa7b8f"),
-    description: "1st edition shadowless. Sharp corners, glossy holo.",
-    category: "Single Hits",
-    sold: false,
-    createdAt: "2026-06-20",
-    reviews: [],
-    views: 124,
-    clicks: 18,
-  },
-  {
-    id: "l-2",
-    sellerId: "u-1",
-    title: "Blastoise Base Set",
-    set: "Base Set 1999",
-    condition: "Lightly Played",
-    price: 850,
-    image: img("photo-1628960198207-c1c8b4cd1ae1"),
-    description: "Minor edge wear. Centering 55/45.",
-    category: "Single Hits",
-    sold: false,
-    createdAt: "2026-06-22",
-    reviews: [],
-    views: 89,
-    clicks: 12,
-  },
-  {
-    id: "l-3",
-    sellerId: "u-2",
-    title: "Pikachu Illustrator Promo (Replica)",
-    set: "Promo",
-    condition: "Mint",
-    price: 45,
-    image: img("photo-1642419040728-9caed54fe0d4"),
-    description: "Replica card — display only.",
-    category: "Single Hits",
-    sold: false,
-    createdAt: "2026-06-25",
-    reviews: [],
-    views: 56,
-    clicks: 7,
-  },
-  {
-    id: "l-4",
-    sellerId: "u-2",
-    title: "Scarlet & Violet Booster Box",
-    set: "SV1 2023",
-    condition: "Mint",
-    price: 140,
-    image: img("photo-1647890055373-2ca19061a25b"),
-    description: "Sealed. 36 packs. English print.",
-    category: "Sealed Product",
-    sold: false,
-    createdAt: "2026-06-28",
-    reviews: [],
-    views: 203,
-    clicks: 31,
-  },
-  {
-    id: "l-5",
-    sellerId: "u-1",
-    title: "Mewtwo GX Rainbow Rare",
-    set: "Shining Legends",
-    condition: "Near Mint",
-    price: 320,
-    image: img("photo-1606107557195-0e29a4b5b4aa"),
-    description: "Straight from pack to sleeve.",
-    category: "Slabs",
-    sold: false,
-    createdAt: "2026-07-01",
-    reviews: [],
-    views: 67,
-    clicks: 9,
-  },
-  {
-    id: "l-6",
-    sellerId: "u-2",
-    title: "Umbreon VMAX Alt Art",
-    set: "Evolving Skies",
-    condition: "Mint",
-    price: 590,
-    compareAtPrice: 695,
-    acceptsOffers: true,
-    acceptsBids: true,
-    image: img("photo-1541963463532-d68292c34b19"),
-    description: "The moonlight chase card.",
-    category: "Single Hits",
-    sold: false,
-    createdAt: "2026-07-03",
-    reviews: [],
-    views: 312,
-    clicks: 44,
-  },
-];
+export const seedListings: Listing[] = [];
 
 export const seedEvents: Event[] = [
   {
@@ -195,27 +95,9 @@ export const seedGiveaways: Giveaway[] = [
   },
 ];
 
-export const seedListingOffers: ListingOffer[] = [
-  {
-    id: "off-1",
-    listingId: "l-6",
-    buyerId: "u-3",
-    amount: 540,
-    message: "Can pick up locally this weekend.",
-    status: "pending",
-    createdAt: "2026-07-28T10:00:00.000Z",
-  },
-];
+export const seedListingOffers: ListingOffer[] = [];
 
-export const seedListingBids: ListingBid[] = [
-  {
-    id: "bid-1",
-    listingId: "l-6",
-    buyerId: "u-3",
-    amount: 520,
-    createdAt: "2026-07-27T14:00:00.000Z",
-  },
-];
+export const seedListingBids: ListingBid[] = [];
 
 export const seedBoostTransactions: BoostTransaction[] = [];
 

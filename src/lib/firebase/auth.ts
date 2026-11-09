@@ -1,7 +1,6 @@
 import {
   createUserWithEmailAndPassword,
   getAuth,
-  GithubAuthProvider,
   GoogleAuthProvider,
   signInWithEmailAndPassword,
   signInWithPopup,
@@ -22,9 +21,35 @@ export async function signInWithEmail(email: string, password: string): Promise<
 }
 
 export async function signInWithGoogle(): Promise<UserCredential> {
-  return signInWithPopup(getFirebaseAuth(), new GoogleAuthProvider());
+  const provider = new GoogleAuthProvider();
+  provider.setCustomParameters({ prompt: "select_account" });
+  provider.addScope("profile");
+  provider.addScope("email");
+  return signInWithPopup(getFirebaseAuth(), provider);
 }
 
-export async function signInWithGithub(): Promise<UserCredential> {
-  return signInWithPopup(getFirebaseAuth(), new GithubAuthProvider());
+export function authErrorMessage(error: unknown): string {
+  const code =
+    typeof error === "object" && error !== null && "code" in error
+      ? String((error as { code: unknown }).code)
+      : "";
+
+  switch (code) {
+    case "auth/operation-not-allowed":
+      return "Google sign-in is not enabled in Firebase. Enable it under Authentication → Sign-in method.";
+    case "auth/unauthorized-domain":
+      return "This domain is not authorized for Google sign-in in Firebase.";
+    case "auth/popup-blocked":
+      return "Pop-up was blocked. Allow pop-ups for this site and try again.";
+    case "auth/popup-closed-by-user":
+      return "Sign-in cancelled.";
+    case "auth/cancelled-popup-request":
+      return "Sign-in cancelled.";
+    case "auth/account-exists-with-different-credential":
+      return "An account already exists with this email using a different sign-in method.";
+    case "auth/network-request-failed":
+      return "Network error. Check your connection and try again.";
+    default:
+      return "Google sign-in failed. Try again.";
+  }
 }

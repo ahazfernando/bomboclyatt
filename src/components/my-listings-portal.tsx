@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useStore, type Listing } from "@/lib/store";
 import { useCurrency } from "@/lib/currency";
 import { Button } from "@/components/ui/button";
@@ -36,33 +36,55 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { toast } from "sonner";
-import { Eye, MousePointerClick, Pencil, Plus, Trash2, ExternalLink, Rocket } from "lucide-react";
+import {
+  Eye,
+  MousePointerClick,
+  Pencil,
+  Plus,
+  Trash2,
+  ExternalLink,
+  Rocket,
+  Star,
+  Upload,
+  X,
+} from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { BoostListingsDialog } from "@/components/boost-listings-dialog";
 import { isListingBoosted, getBoostTimeRemaining } from "@/lib/boost";
 import { SellerIncomingOffers } from "@/components/seller-incoming-offers";
+import {
+  DEFAULT_LISTING_IMAGE,
+  MAX_LISTING_IMAGES,
+  approvalLabel,
+  fileToCompressedDataUrl,
+  listingImages,
+  listingPrimaryImage,
+  normalizeListingImages,
+} from "@/lib/listing-media";
 
 const categories = ["Sealed Product", "Single Hits", "Accessories", "Slabs", "Comics", "Diecast"] as const;
 const conditions = ["Mint", "Near Mint", "Lightly Played", "Played"] as const;
 
-type ListingForm = {
+export type ListingForm = {
   title: string;
   set: string;
   price: number;
-  image: string;
+  images: string[];
   description: string;
   category: (typeof categories)[number];
   condition: (typeof conditions)[number];
+  featured: boolean;
 };
 
 const emptyForm: ListingForm = {
   title: "",
   set: "",
   price: 0,
-  image: "",
+  images: [],
   description: "",
   category: "Single Hits",
   condition: "Near Mint",
+  featured: false,
 };
 
 export function ListingFormFields({
@@ -72,6 +94,53 @@ export function ListingFormFields({
   form: ListingForm;
   setForm: (f: ListingForm) => void;
 }) {
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const [urlDraft, setUrlDraft] = useState("");
+
+  const remaining = MAX_LISTING_IMAGES - form.images.length;
+
+  const addImages = async (files: FileList | null) => {
+    if (!files?.length) return;
+    if (remaining <= 0) {
+      toast.error(`Maximum ${MAX_LISTING_IMAGES} images per listing.`);
+      return;
+    }
+    setUploading(true);
+    try {
+      const next = [...form.images];
+      for (const file of Array.from(files)) {
+        if (next.length >= MAX_LISTING_IMAGES) break;
+        if (!file.type.startsWith("image/")) {
+          toast.error(`${file.name} is not an image.`);
+          continue;
+        }
+        next.push(await fileToCompressedDataUrl(file));
+      }
+      setForm({ ...form, images: next });
+    } catch {
+      toast.error("Could not process one or more images.");
+    } finally {
+      setUploading(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  };
+
+  const addUrl = () => {
+    const url = urlDraft.trim();
+    if (!url) return;
+    if (form.images.length >= MAX_LISTING_IMAGES) {
+      toast.error(`Maximum ${MAX_LISTING_IMAGES} images per listing.`);
+      return;
+    }
+    setForm({ ...form, images: [...form.images, url] });
+    setUrlDraft("");
+  };
+
+  const removeImage = (index: number) => {
+    setForm({ ...form, images: form.images.filter((_, i) => i !== index) });
+  };
+
   return (
     <div className="space-y-4">
       <div>
@@ -104,15 +173,73 @@ export function ListingFormFields({
           />
         </div>
       </div>
+
       <div>
-        <Label>Image URL</Label>
-        <Input
-          className="mt-1"
-          placeholder="https://..."
-          value={form.image}
-          onChange={(e) => setForm({ ...form, image: e.target.value })}
+        <div className="flex items-center justify-between gap-2">
+          <Label>Photos</Label>
+          <span className="text-xs text-muted-foreground">
+            {form.images.length}/{MAX_LISTING_IMAGES} · max {MAX_LISTING_IMAGES}
+          </span>
+        </div>
+        <div className="mt-2 grid grid-cols-3 gap-2">
+          {form.images.map((src, i) => (
+            <div key={`${src.slice(0, 24)}-${i}`} className="relative aspect-square overflow-hidden rounded-xl border border-border bg-muted">
+              <img src={src} alt="" className="h-full w-full object-cover" />
+              {i === 0 && (
+                <span className="absolute left-1.5 top-1.5 rounded-full bg-maple px-2 py-0.5 text-[10px] font-semibold text-tuft">
+                  Cover
+                </span>
+              )}
+              <button
+                type="button"
+                onClick={() => removeImage(i)}
+                className="absolute right-1.5 top-1.5 grid h-6 w-6 place-items-center rounded-full bg-background/90 text-foreground shadow"
+                aria-label="Remove image"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          ))}
+          {remaining > 0 && (
+            <button
+              type="button"
+              disabled={uploading}
+              onClick={() => fileRef.current?.click()}
+              className="flex aspect-square flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-border bg-secondary/40 text-muted-foreground transition hover:border-primary hover:text-foreground"
+            >
+              <Upload className="h-4 w-4" />
+              <span className="text-[11px] font-medium">{uploading ? "Uploading…" : "Upload"}</span>
+            </button>
+          )}
+        </div>
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/*"
+          multiple
+          className="hidden"
+          onChange={(e) => void addImages(e.target.files)}
         />
+        {remaining > 0 && (
+          <div className="mt-2 flex gap-2">
+            <Input
+              placeholder="Or paste image URL"
+              value={urlDraft}
+              onChange={(e) => setUrlDraft(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  addUrl();
+                }
+              }}
+            />
+            <Button type="button" variant="outline" onClick={addUrl}>
+              Add
+            </Button>
+          </div>
+        )}
       </div>
+
       <div>
         <Label>Description</Label>
         <Textarea
@@ -148,6 +275,23 @@ export function ListingFormFields({
           </select>
         </div>
       </div>
+
+      <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-border bg-secondary/30 p-3">
+        <Checkbox
+          checked={form.featured}
+          onCheckedChange={(checked) => setForm({ ...form, featured: checked === true })}
+          className="mt-0.5"
+        />
+        <span>
+          <span className="flex items-center gap-1.5 text-sm font-medium">
+            <Star className="h-3.5 w-3.5 text-maple" />
+            Request featured listing
+          </span>
+          <span className="mt-0.5 block text-xs text-muted-foreground">
+            Featured placement is reviewed with your listing before it goes live.
+          </span>
+        </span>
+      </label>
     </div>
   );
 }
@@ -157,10 +301,26 @@ function listingToForm(l: Listing): ListingForm {
     title: l.title,
     set: l.set,
     price: l.price,
-    image: l.image,
+    images: listingImages(l),
     description: l.description,
     category: l.category,
     condition: l.condition,
+    featured: l.featured ?? false,
+  };
+}
+
+function formToListingPatch(form: ListingForm) {
+  const images = normalizeListingImages(form.images, DEFAULT_LISTING_IMAGE);
+  return {
+    title: form.title,
+    set: form.set,
+    price: form.price,
+    images,
+    image: images[0],
+    description: form.description,
+    category: form.category,
+    condition: form.condition,
+    featured: form.featured,
   };
 }
 
@@ -183,34 +343,31 @@ export function MyListingsPortal() {
   const stats = useMemo(
     () => ({
       total: myListings.length,
-      live: myListings.filter((l) => !l.sold).length,
-      views: myListings.reduce((a, l) => a + (l.views ?? 0), 0),
+      live: myListings.filter((l) => !l.sold && l.approvalStatus === "approved").length,
+      pending: myListings.filter((l) => !l.sold && l.approvalStatus === "pending").length,
       clicks: myListings.reduce((a, l) => a + (l.clicks ?? 0), 0),
     }),
     [myListings]
   );
-
-  const defaultImage =
-    "https://images.unsplash.com/photo-1613771404784-3a5686aa7b8f?auto=format&fit=crop&w=800&q=80";
 
   const handleCreate = () => {
     if (!currentUser || !createForm.title || !createForm.price) {
       toast.error("Title and price are required.");
       return;
     }
+    if (createForm.images.length > MAX_LISTING_IMAGES) {
+      toast.error(`Maximum ${MAX_LISTING_IMAGES} images per listing.`);
+      return;
+    }
+    const patch = formToListingPatch(createForm);
     addListing({
       sellerId: currentUser.id,
-      title: createForm.title,
-      set: createForm.set,
-      price: createForm.price,
-      image: createForm.image || defaultImage,
-      description: createForm.description,
-      category: createForm.category,
-      condition: createForm.condition,
+      ...patch,
+      approvalStatus: "pending",
     });
     setCreateForm(emptyForm);
     setCreateOpen(false);
-    toast.success("Listing published!");
+    toast.success("Listing submitted for admin approval.");
   };
 
   const handleEdit = () => {
@@ -218,17 +375,19 @@ export function MyListingsPortal() {
       toast.error("Title and price are required.");
       return;
     }
+    const patch = formToListingPatch(editForm);
+    const needsReapproval =
+      editTarget.approvalStatus === "approved" &&
+      (patch.title !== editTarget.title ||
+        patch.description !== editTarget.description ||
+        patch.price !== editTarget.price ||
+        JSON.stringify(patch.images) !== JSON.stringify(listingImages(editTarget)));
     editListing(editTarget.id, {
-      title: editForm.title,
-      set: editForm.set,
-      price: editForm.price,
-      image: editForm.image || defaultImage,
-      description: editForm.description,
-      category: editForm.category,
-      condition: editForm.condition,
+      ...patch,
+      ...(needsReapproval ? { approvalStatus: "pending" as const } : {}),
     });
     setEditTarget(null);
-    toast.success("Listing updated!");
+    toast.success(needsReapproval ? "Listing updated and sent for re-approval." : "Listing updated!");
   };
 
   const handleDelete = (id: string) => {
@@ -241,7 +400,7 @@ export function MyListingsPortal() {
     toast.success("Listing deleted.");
   };
 
-  const liveListings = myListings.filter((l) => !l.sold);
+  const liveListings = myListings.filter((l) => !l.sold && l.approvalStatus === "approved");
   const selectedLive = [...selected].filter((id) => liveListings.some((l) => l.id === id));
 
   const openBoost = (ids: string[]) => {
@@ -292,19 +451,21 @@ export function MyListingsPortal() {
               <DialogTitle>Create listing</DialogTitle>
             </DialogHeader>
             <ListingFormFields form={createForm} setForm={setCreateForm} />
+            <p className="mt-2 text-xs text-muted-foreground">
+              New listings stay hidden until an admin approves them.
+            </p>
             <Button className="mt-4 w-full bg-primary" onClick={handleCreate}>
-              Publish listing
+              Submit for approval
             </Button>
           </DialogContent>
         </Dialog>
       </div>
 
-      {/* Stats */}
       <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {[
           { label: "Total listings", value: stats.total, icon: null },
           { label: "Live listings", value: stats.live, icon: null },
-          { label: "Total views", value: stats.views, icon: Eye },
+          { label: "Pending approval", value: stats.pending, icon: null },
           { label: "Total clicks", value: stats.clicks, icon: MousePointerClick },
         ].map((s) => (
           <div key={s.label} className="rounded-2xl border border-border bg-card p-5 shadow-card">
@@ -317,7 +478,6 @@ export function MyListingsPortal() {
         ))}
       </div>
 
-      {/* Table */}
       {myListings.length === 0 ? (
         <div className="mt-8 rounded-2xl border border-dashed border-border bg-card/50 p-12 text-center">
           <p className="text-muted-foreground">You haven&apos;t listed anything yet.</p>
@@ -372,7 +532,7 @@ export function MyListingsPortal() {
               {myListings.map((l) => (
                 <TableRow key={l.id}>
                   <TableCell>
-                    {!l.sold ? (
+                    {!l.sold && l.approvalStatus === "approved" ? (
                       <Checkbox
                         checked={selected.has(l.id)}
                         onCheckedChange={() => toggleSelect(l.id)}
@@ -382,7 +542,7 @@ export function MyListingsPortal() {
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-3">
-                      <img src={l.image} alt="" className="h-12 w-12 rounded-lg object-cover" />
+                      <img src={listingPrimaryImage(l)} alt="" className="h-12 w-12 rounded-lg object-cover" />
                       <div>
                         <p className="font-medium line-clamp-1">{l.title}</p>
                         <p className="text-xs text-muted-foreground">{l.category} · {l.condition}</p>
@@ -396,8 +556,18 @@ export function MyListingsPortal() {
                     <div className="flex flex-wrap items-center gap-2">
                       {l.sold ? (
                         <Badge className="bg-destructive text-destructive-foreground">Sold</Badge>
-                      ) : (
+                      ) : l.approvalStatus === "approved" ? (
                         <Badge variant="outline" className="border-primary/30 text-primary">Live</Badge>
+                      ) : (
+                        <Badge variant="outline" className="border-border text-muted-foreground">
+                          {approvalLabel(l.approvalStatus)}
+                        </Badge>
+                      )}
+                      {l.featured && (
+                        <Badge className="bg-maple text-tuft">
+                          <Star className="mr-1 h-3 w-3" />
+                          Featured
+                        </Badge>
                       )}
                       {isListingBoosted(l) && (
                         <Badge className="bg-maple text-tuft">
@@ -409,7 +579,7 @@ export function MyListingsPortal() {
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-1">
-                      {!l.sold && (
+                      {!l.sold && l.approvalStatus === "approved" && (
                         <Button
                           variant="ghost"
                           size="icon"
@@ -476,7 +646,6 @@ export function MyListingsPortal() {
         onSuccess={() => setSelected(new Set())}
       />
 
-      {/* Edit dialog */}
       <Dialog open={!!editTarget} onOpenChange={(open) => !open && setEditTarget(null)}>
         <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
           <DialogHeader>

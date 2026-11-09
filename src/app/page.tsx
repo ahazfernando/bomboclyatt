@@ -19,7 +19,7 @@ export default function Index() {
           className="absolute inset-0 h-full w-full object-cover object-center"
         />
         <div className="absolute inset-0 bg-black/35" aria-hidden="true" />
-        <div className="relative mx-auto max-w-7xl px-6 py-24 md:py-32 lg:py-40">
+        <div className="page-shell relative py-24 md:py-32 lg:py-40">
           <div className="max-w-xl text-primary-foreground">
             <div className="inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-xs font-medium backdrop-blur">
               <Flame className="h-3.5 w-3.5" /> New drops every day
@@ -45,7 +45,7 @@ export default function Index() {
       <CategoryBrowse />
 
       {/* Feature strip */}
-      <section className="mx-auto max-w-7xl px-6 py-16">
+      <section className="page-shell py-16">
         <div className="grid gap-6 md:grid-cols-3">
           {[
             { icon: MessageCircle, title: "Close on WhatsApp", desc: "Buy Now pings the seller directly with your listing details." },
@@ -64,7 +64,7 @@ export default function Index() {
       </section>
 
       {/* Events + giveaways teaser */}
-      <section className="mx-auto max-w-7xl px-6 py-16 grid gap-6 md:grid-cols-2">
+      <section className="page-shell grid gap-6 py-16 md:grid-cols-2">
         <Link href="/events" className="group relative overflow-hidden rounded-2xl bg-gradient-sun p-8 shadow-card min-h-56 flex flex-col justify-between">
           <div>
             <div className="text-xs font-semibold uppercase tracking-widest text-maple/70">Events</div>

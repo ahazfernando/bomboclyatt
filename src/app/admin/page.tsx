@@ -13,6 +13,7 @@ import {
   ArrowUp,
   ArrowDown,
 } from "lucide-react";
+import { listingPrimaryImage } from "@/lib/listing-media";
 
 export default function AdminOverview() {
   const { currentUser, users, listings, currentAdmin } = useStore();
@@ -208,7 +209,7 @@ export default function AdminOverview() {
                       <tr key={l.id} className="border-t border-border/60">
                         <td className="py-3">
                           <Link href={`/listing/${l.id}`} className="flex items-center gap-3">
-                            <img src={l.image} alt="" className="h-9 w-9 rounded-full object-cover" />
+                            <img src={listingPrimaryImage(l)} alt="" className="h-9 w-9 rounded-full object-cover" />
                             <div>
                               <div className="font-medium leading-tight">{l.title.slice(0, 22)}</div>
                               <div className="text-xs text-primary">+{seller?.name.split(" ")[0] ?? "Seller"}</div>

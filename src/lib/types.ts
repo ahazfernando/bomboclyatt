@@ -1,8 +1,18 @@
 export type UserRole = "buyer" | "seller";
 
+export interface BusinessDocument {
+  id: string;
+  name: string;
+  url: string;
+  mimeType: string;
+  uploadedAt: string;
+}
+
 export interface User {
   id: string;
   name: string;
+  /** Public handle, unique when set. */
+  username?: string;
   email: string;
   role: UserRole;
   whatsapp?: string;
@@ -10,6 +20,11 @@ export interface User {
   avatar?: string;
   points: number;
   walletBalance?: number;
+  /** Purchased verification badge. */
+  verified?: boolean;
+  verifiedAt?: string;
+  /** Business registration / KYB documents. */
+  businessDocuments?: BusinessDocument[];
   ratings: { from: string; stars: number; comment: string; date: string }[];
 }
 
@@ -22,6 +37,8 @@ export interface Admin {
   avatar?: string;
   createdAt: string;
 }
+
+export type ListingApprovalStatus = "pending" | "approved" | "rejected";
 
 export interface Listing {
   id: string;
@@ -36,7 +53,10 @@ export interface Listing {
   acceptsOffers?: boolean;
   /** Whether buyers can place bids (e.g. auction-style). */
   acceptsBids?: boolean;
+  /** Primary thumbnail (usually images[0]). */
   image: string;
+  /** Up to 3 listing photos (URLs or data URLs). */
+  images: string[];
   description: string;
   category: "Sealed Product" | "Single Hits" | "Accessories" | "Slabs" | "Comics" | "Diecast";
   sold: boolean;
@@ -45,6 +65,10 @@ export interface Listing {
   reviews: { from: string; stars: number; comment: string; date: string }[];
   views: number;
   clicks: number;
+  /** Seller-requested / admin-managed featured placement. */
+  featured?: boolean;
+  /** Marketplace visibility requires admin approval. */
+  approvalStatus: ListingApprovalStatus;
   boostedUntil?: string;
   boostedAt?: string;
 }

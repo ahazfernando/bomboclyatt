@@ -14,6 +14,7 @@ import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { LayoutGrid, List } from "lucide-react";
 import { sortListingsWithBoost } from "@/lib/boost";
+import { isListingApproved } from "@/lib/listing-media";
 
 const categories = ["All", "Sealed Product", "Single Hits", "Accessories", "Slabs", "Comics", "Diecast"] as const;
 const conditions = ["Mint", "Near Mint", "Lightly Played", "Played"] as const;
@@ -53,6 +54,7 @@ function BrowseContent() {
 
   const filtered = useMemo(() => {
     const out = listings.filter((l) =>
+      isListingApproved(l) &&
       (cat === "All" || l.category === cat) &&
       (cond.size === 0 || cond.has(l.condition)) &&
       (!hideSold || !l.sold) &&
@@ -78,7 +80,7 @@ function BrowseContent() {
   };
 
   return (
-    <div className="mx-auto max-w-7xl px-6 py-10">
+    <div className="page-shell py-10">
       <h1 className="display text-5xl">Browse cards</h1>
       <p className="text-muted-foreground mt-2">{filtered.length} listings available</p>
 
@@ -200,7 +202,7 @@ function BrowseContent() {
           {filtered.length === 0 ? (
             <p className="mt-16 text-center text-muted-foreground">No cards match your filters.</p>
           ) : view === "grid" ? (
-            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
               {filtered.map((l) => <ListingCard key={l.id} listing={l} />)}
             </div>
           ) : (

@@ -30,7 +30,7 @@ export default function DashboardOverview() {
     return {
       gmv: gmv || 0,
       sold: sold.length,
-      live: myListings.filter((l) => !l.sold).length,
+      live: myListings.filter((l) => !l.sold && l.approvalStatus === "approved").length,
       views,
       clicks,
       points: currentUser?.points ?? 0,

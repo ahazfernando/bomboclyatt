@@ -6,6 +6,7 @@ import { useCurrency } from "@/lib/currency";
 import { Button } from "@/components/ui/button";
 import { CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
+import { listingPrimaryImage } from "@/lib/listing-media";
 
 export default function DashboardPurchasesPage() {
   const { currentUser, listings, confirmPurchase } = useStore();
@@ -32,7 +33,7 @@ export default function DashboardPurchasesPage() {
               key={l.id}
               className="flex items-center gap-4 rounded-2xl border border-border bg-background p-4 shadow-card"
             >
-              <img src={l.image} className="h-16 w-16 rounded-lg object-cover" alt="" />
+              <img src={listingPrimaryImage(l)} className="h-16 w-16 rounded-lg object-cover" alt="" />
               <div className="flex-1">
                 <Link href={`/listing/${l.id}`} className="font-semibold hover:text-primary">
                   {l.title}

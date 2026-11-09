@@ -43,18 +43,21 @@ export function computeBoostedUntil(planId: BoostPlanId, existingUntil?: string)
   return new Date(base + plan.days * 24 * 60 * 60 * 1000).toISOString();
 }
 
-/** Sort boosted (active) listings first, then apply secondary sort within each group. */
+/** Sort featured, then boosted, then apply secondary sort within each group. */
 export function sortListingsWithBoost<T extends Listing>(
   listings: T[],
   secondarySort: (a: T, b: T) => number
 ): T[] {
+  const featured: T[] = [];
   const boosted: T[] = [];
   const regular: T[] = [];
   for (const l of listings) {
-    if (isListingBoosted(l)) boosted.push(l);
+    if (l.featured) featured.push(l);
+    else if (isListingBoosted(l)) boosted.push(l);
     else regular.push(l);
   }
+  featured.sort((a, b) => secondarySort(a, b));
   boosted.sort((a, b) => secondarySort(a, b));
   regular.sort(secondarySort);
-  return [...boosted, ...regular];
+  return [...featured, ...boosted, ...regular];
 }

@@ -81,8 +81,11 @@ export function AuthNavActions({ showPoints = true, sellButtonClassName }: AuthN
           ) : (
             <>
               <DropdownMenuItem onClick={() => router.push("/dashboard")}>Dashboard</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => router.push("/dashboard/profile")}>
+                Edit profile
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={() => router.push(`/sellers/${currentUser!.id}`)}>
-                My profile
+                Public profile
               </DropdownMenuItem>
             </>
           )}

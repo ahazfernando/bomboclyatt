@@ -7,7 +7,7 @@ import { Calendar, MapPin } from "lucide-react";
 export default function Events() {
   const { events, users } = useStore();
   return (
-    <div className="mx-auto max-w-6xl px-6 py-12">
+    <div className="page-shell py-12">
       <h1 className="display text-5xl">Community events</h1>
       <p className="text-muted-foreground mt-2">IRL meetups, prereleases, and trade nights hosted by verified sellers.</p>
 

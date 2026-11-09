@@ -4,12 +4,12 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import { AuthShell } from "@/components/auth/auth-shell";
-import { AuthDivider, AuthField, GithubIcon, GoogleIcon, SocialButton } from "@/components/auth/auth-form";
+import { AuthDivider, AuthField, GoogleIcon, SocialButton } from "@/components/auth/auth-form";
 import { Button } from "@/components/ui/button";
 import { isFirebaseConfigured } from "@/lib/firebase/config";
 import {
+  authErrorMessage,
   signInWithEmail,
-  signInWithGithub,
   signInWithGoogle,
   signUpWithEmail,
 } from "@/lib/firebase/auth";
@@ -26,7 +26,9 @@ function AuthContent() {
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const finishAuth = (userEmail: string, name?: string) => {
@@ -46,19 +48,23 @@ function AuthContent() {
     router.push("/dashboard");
   };
 
-  const handleSocial = async (provider: "google" | "github") => {
+  const handleGoogle = async () => {
     if (!isFirebaseConfigured()) {
       toast.error("Firebase is not configured.");
       return;
     }
     setLoading(true);
     try {
-      const cred =
-        provider === "google" ? await signInWithGoogle() : await signInWithGithub();
-      const displayName = cred.user.displayName ?? cred.user.email?.split("@")[0] ?? "User";
-      finishAuth(cred.user.email ?? "", displayName);
-    } catch {
-      toast.error("Social sign-in failed. Try again.");
+      const cred = await signInWithGoogle();
+      const userEmail = cred.user.email;
+      if (!userEmail) {
+        toast.error("Google did not return an email for this account.");
+        return;
+      }
+      const displayName = cred.user.displayName ?? userEmail.split("@")[0] ?? "User";
+      finishAuth(userEmail, displayName);
+    } catch (error) {
+      toast.error(authErrorMessage(error));
     } finally {
       setLoading(false);
     }
@@ -66,12 +72,16 @@ function AuthContent() {
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!firstName || !lastName || !email || !password) {
+    if (!firstName || !lastName || !email || !password || !confirmPassword) {
       toast.error("Please fill in all fields.");
       return;
     }
     if (password.length < 8) {
       toast.error("Password must be at least 8 characters.");
+      return;
+    }
+    if (password !== confirmPassword) {
+      toast.error("Passwords do not match.");
       return;
     }
     setLoading(true);
@@ -122,17 +132,11 @@ function AuthContent() {
           <p className="mt-2 text-sm text-white/50">Enter your personal data to create your account.</p>
         </div>
 
-        <div className="mt-8 flex gap-3">
+        <div className="mt-8">
           <SocialButton
-            label="Google"
+            label="Continue with Google"
             icon={<GoogleIcon />}
-            onClick={() => handleSocial("google")}
-            disabled={loading}
-          />
-          <SocialButton
-            label="Github"
-            icon={<GithubIcon />}
-            onClick={() => handleSocial("github")}
+            onClick={handleGoogle}
             disabled={loading}
           />
         </div>
@@ -175,6 +179,16 @@ function AuthContent() {
             visible={showPassword}
             onToggle={() => setShowPassword((v) => !v)}
           />
+          <AuthField
+            id="confirmPassword"
+            label="Confirm Password"
+            placeholder="Re-enter your password"
+            value={confirmPassword}
+            onChange={setConfirmPassword}
+            showToggle
+            visible={showConfirmPassword}
+            onToggle={() => setShowConfirmPassword((v) => !v)}
+          />
 
           <Button
             type="submit"
@@ -208,17 +222,11 @@ function AuthContent() {
         <p className="mt-2 text-sm text-white/50">Enter your credentials to access your account.</p>
       </div>
 
-      <div className="mt-8 flex gap-3">
+      <div className="mt-8">
         <SocialButton
-          label="Google"
+          label="Continue with Google"
           icon={<GoogleIcon />}
-          onClick={() => handleSocial("google")}
-          disabled={loading}
-        />
-        <SocialButton
-          label="Github"
-          icon={<GithubIcon />}
-          onClick={() => handleSocial("github")}
+          onClick={handleGoogle}
           disabled={loading}
         />
       </div>

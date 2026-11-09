@@ -134,8 +134,9 @@ export function DashboardShell({ children }: { children: ReactNode }) {
             <img src="/logo/BomboclyattRedesign.png" alt="BomboClyatt" className="h-9 w-auto" />
           </Link>
 
-          <div className="hidden items-center gap-1 rounded-full bg-secondary/60 p-1 md:flex">
-            {rail.slice(0, 4).map((n) => (
+          {/* Top pills only when the left rail is hidden (< lg) so nav never doubles */}
+          <div className="hidden items-center gap-1 rounded-full bg-secondary/60 p-1 md:flex lg:hidden">
+            {rail.map((n) => (
               <Link
                 key={n.to}
                 href={n.to}
@@ -175,10 +176,10 @@ export function DashboardShell({ children }: { children: ReactNode }) {
               </div>
               <div className="flex flex-col items-center gap-3">
                 <RailLink
-                  href={`/sellers/${currentUser.id}`}
+                  href="/dashboard/profile"
                   label="Profile"
                   icon={User}
-                  active={false}
+                  active={isActive("/dashboard/profile")}
                 />
                 <RailLink href="/" label="Marketplace" icon={Settings} active={false} />
                 <RailButton

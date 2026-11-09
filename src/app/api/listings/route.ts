@@ -25,12 +25,24 @@ export async function POST(request: Request) {
   try {
     const body = (await request.json()) as Omit<Listing, "id" | "createdAt" | "sold" | "reviews">;
     const db = getServerFirestore();
+    const images =
+      Array.isArray(body.images) && body.images.length
+        ? body.images.filter(Boolean).slice(0, 3)
+        : body.image
+          ? [body.image]
+          : [];
     const listing: Listing = {
       ...body,
       id: `l-${Date.now()}`,
       createdAt: new Date().toISOString().slice(0, 10),
       sold: false,
       reviews: [],
+      images,
+      image: images[0] || body.image,
+      featured: body.featured ?? false,
+      approvalStatus: body.approvalStatus ?? "pending",
+      views: body.views ?? 0,
+      clicks: body.clicks ?? 0,
     };
     await createListing(db, listing);
     return NextResponse.json(listing, { status: 201 });

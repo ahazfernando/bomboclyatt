@@ -24,9 +24,10 @@ import {
 } from "@/lib/firebase/db";
 import { seedData } from "@/lib/firebase/seed";
 import { calculateBoostTotal, computeBoostedUntil, type BoostPlanId } from "@/lib/boost";
-import type { User, Admin, Listing, Event, Giveaway, UserRole, SessionType, BoostTransaction, ListingOffer, ListingBid, OfferStatus } from "@/lib/types";
+import type { User, Admin, Listing, Event, Giveaway, UserRole, SessionType, BoostTransaction, ListingOffer, ListingBid, OfferStatus, BusinessDocument } from "@/lib/types";
+import { VERIFICATION_BADGE_PRICE, isValidUsername, normalizeUsername } from "@/lib/profile";
 
-export type { User, Admin, Listing, Event, Giveaway, UserRole, SessionType, BoostTransaction, ListingOffer, ListingBid };
+export type { User, Admin, Listing, Event, Giveaway, UserRole, SessionType, BoostTransaction, ListingOffer, ListingBid, BusinessDocument };
 export type Role = UserRole;
 
 interface Store {
@@ -65,6 +66,21 @@ interface Store {
   drawGiveaway: (id: string) => void;
   boostListings: (listingIds: string[], planId: BoostPlanId) => { ok: true } | { ok: false; reason: string };
   addWalletFunds: (amount: number) => void;
+  updateProfile: (
+    data: Partial<
+      Pick<
+        User,
+        | "name"
+        | "username"
+        | "whatsapp"
+        | "bio"
+        | "avatar"
+        | "role"
+        | "businessDocuments"
+      >
+    >,
+  ) => { ok: true } | { ok: false; reason: string };
+  purchaseVerificationBadge: () => { ok: true } | { ok: false; reason: string };
   placeOffer: (listingId: string, amount: number, message?: string) => { ok: true } | { ok: false; reason: string };
   placeBid: (listingId: string, amount: number) => { ok: true } | { ok: false; reason: string };
   respondToOffer: (offerId: string, status: Exclude<OfferStatus, "pending">) => void;
@@ -76,7 +92,22 @@ const SESSION_TYPE = "bomboclyatt-session-type";
 const useFirebase = isFirebaseConfigured();
 
 export function normalizeListing(l: Listing): Listing {
-  return { ...l, views: l.views ?? 0, clicks: l.clicks ?? 0 };
+  const images =
+    Array.isArray(l.images) && l.images.length
+      ? l.images.filter(Boolean).slice(0, 3)
+      : l.image
+        ? [l.image]
+        : [];
+  return {
+    ...l,
+    images,
+    image: l.image || images[0] || "",
+    featured: l.featured ?? false,
+    // Legacy seed/local listings without a status stay visible on the marketplace.
+    approvalStatus: l.approvalStatus ?? "approved",
+    views: l.views ?? 0,
+    clicks: l.clicks ?? 0,
+  };
 }
 
 type AppData = {
@@ -406,6 +437,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       persistAdmin(null);
     },
     addListing: (l) => {
+      const images =
+        Array.isArray(l.images) && l.images.length
+          ? l.images.filter(Boolean).slice(0, 3)
+          : l.image
+            ? [l.image]
+            : [];
       const nl: Listing = {
         ...l,
         id: `l-${Date.now()}`,
@@ -414,6 +451,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         reviews: [],
         views: 0,
         clicks: 0,
+        images,
+        image: images[0] || l.image,
+        featured: l.featured ?? false,
+        approvalStatus: l.approvalStatus ?? "pending",
       };
       if (useFirebase) {
         void createListing(getFirestoreDb(), nl);
@@ -571,6 +612,68 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       const balance = (currentUser.walletBalance ?? 0) + amount;
       void patchUser(currentUser.id, { walletBalance: balance });
       setCurrentUser({ ...currentUser, walletBalance: balance });
+    },
+    updateProfile: (patch) => {
+      if (!currentUser) return { ok: false, reason: "Sign in to update your profile." };
+
+      const next: Partial<User> = { ...patch };
+
+      if (patch.username !== undefined) {
+        const username = normalizeUsername(patch.username);
+        if (username && !isValidUsername(username)) {
+          return {
+            ok: false,
+            reason: "Username must be 3–24 characters (letters, numbers, . or _).",
+          };
+        }
+        const taken = data.users.some(
+          (u) =>
+            u.id !== currentUser.id &&
+            u.username &&
+            u.username.toLowerCase() === username.toLowerCase(),
+        );
+        if (username && taken) return { ok: false, reason: "That username is already taken." };
+        next.username = username || undefined;
+      }
+
+      if (patch.name !== undefined) {
+        const name = patch.name.trim();
+        if (!name) return { ok: false, reason: "Display name is required." };
+        next.name = name;
+      }
+
+      if (patch.businessDocuments !== undefined) {
+        next.businessDocuments = patch.businessDocuments;
+      }
+
+      void patchUser(currentUser.id, next);
+      setCurrentUser({ ...currentUser, ...next });
+      return { ok: true };
+    },
+    purchaseVerificationBadge: () => {
+      if (!currentUser) return { ok: false, reason: "Sign in to purchase verification." };
+      if (currentUser.verified) return { ok: false, reason: "You already have a verification badge." };
+      const balance = currentUser.walletBalance ?? 0;
+      if (balance < VERIFICATION_BADGE_PRICE) {
+        return {
+          ok: false,
+          reason: `Insufficient wallet balance. Verification costs $${VERIFICATION_BADGE_PRICE.toFixed(2)}.`,
+        };
+      }
+      const nextBalance = Math.round((balance - VERIFICATION_BADGE_PRICE) * 100) / 100;
+      const verifiedAt = new Date().toISOString();
+      void patchUser(currentUser.id, {
+        walletBalance: nextBalance,
+        verified: true,
+        verifiedAt,
+      });
+      setCurrentUser({
+        ...currentUser,
+        walletBalance: nextBalance,
+        verified: true,
+        verifiedAt,
+      });
+      return { ok: true };
     },
     placeOffer: (listingId, amount, message) => {
       if (!currentUser) return { ok: false, reason: "Sign in to make an offer." };

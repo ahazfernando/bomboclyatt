@@ -6,7 +6,8 @@ import { useCurrency } from "@/lib/currency";
 import { useStore } from "@/lib/store";
 import { Badge } from "@/components/ui/badge";
 import { isListingBoosted } from "@/lib/boost";
-import { Rocket } from "lucide-react";
+import { listingPrimaryImage } from "@/lib/listing-media";
+import { Rocket, Star } from "lucide-react";
 
 export function ListingCard({ listing }: { listing: Listing }) {
   const { formatPrice } = useCurrency();
@@ -20,7 +21,7 @@ export function ListingCard({ listing }: { listing: Listing }) {
     >
       <div className="aspect-[4/5] overflow-hidden bg-muted">
         <img
-          src={listing.image}
+          src={listingPrimaryImage(listing)}
           alt={listing.title}
           className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
           loading="lazy"
@@ -30,6 +31,12 @@ export function ListingCard({ listing }: { listing: Listing }) {
         <div className="flex items-center justify-between gap-2">
           <Badge variant="outline" className="border-accent/40 text-accent bg-accent/5">{listing.condition}</Badge>
           <div className="flex items-center gap-1">
+            {listing.featured && (
+              <Badge className="bg-maple text-tuft">
+                <Star className="mr-1 h-3 w-3" />
+                Featured
+              </Badge>
+            )}
             {isListingBoosted(listing) && (
               <Badge className="bg-maple text-tuft">
                 <Rocket className="mr-1 h-3 w-3" />
