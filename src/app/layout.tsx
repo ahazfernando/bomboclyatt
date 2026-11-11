@@ -5,7 +5,7 @@ import { Providers } from "./providers";
 const siteName = "BomboClyatt";
 const siteTitle = "BomboClyatt — Buy & Sell Collectible Items";
 const siteDescription =
-  "BomboClyatt is a marketplace to buy and sell collectible items — trading cards, sealed product, slabs, comics, diecast, and more. List your collection and find your next piece.";
+  "BomboClyatt is a marketplace to buy and sell all collectible items — trading cards, sealed product, slabs, comics, diecast, accessories, and more. List your collection and find your next piece.";
 const logoUrl = "/logo/BomboClyatt.png";
 
 export const metadata: Metadata = {

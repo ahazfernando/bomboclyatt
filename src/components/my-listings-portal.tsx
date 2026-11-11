@@ -56,10 +56,10 @@ import {
   DEFAULT_LISTING_IMAGE,
   MAX_LISTING_IMAGES,
   approvalLabel,
-  fileToCompressedDataUrl,
   listingImages,
   listingPrimaryImage,
   normalizeListingImages,
+  uploadListingImage,
 } from "@/lib/listing-media";
 
 const categories = ["Sealed Product", "Single Hits", "Accessories", "Slabs", "Comics", "Diecast"] as const;
@@ -115,11 +115,25 @@ export function ListingFormFields({
           toast.error(`${file.name} is not an image.`);
           continue;
         }
-        next.push(await fileToCompressedDataUrl(file));
+        if (file.size > 8 * 1024 * 1024) {
+          toast.error(`${file.name} is too large (max 8MB).`);
+          continue;
+        }
+        try {
+          next.push(await uploadListingImage(file, "listings"));
+        } catch (err) {
+          toast.error(
+            err instanceof Error ? err.message : `Could not upload ${file.name}.`,
+          );
+        }
       }
       setForm({ ...form, images: next });
+      const added = next.length - form.images.length;
+      if (added > 0) {
+        toast.success(added === 1 ? "Image uploaded." : `${added} images uploaded.`);
+      }
     } catch {
-      toast.error("Could not process one or more images.");
+      toast.error("Could not upload one or more images.");
     } finally {
       setUploading(false);
       if (fileRef.current) fileRef.current.value = "";
@@ -147,7 +161,7 @@ export function ListingFormFields({
         <Label>Title</Label>
         <Input
           className="mt-1"
-          placeholder="Card title"
+          placeholder="Item title"
           value={form.title}
           onChange={(e) => setForm({ ...form, title: e.target.value })}
         />

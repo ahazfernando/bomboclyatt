@@ -25,10 +25,10 @@ export default function Index() {
               <Flame className="h-3.5 w-3.5" /> New drops every day
             </div>
             <h1 className="display mt-6 text-5xl leading-[0.95] md:text-7xl">
-              Trade cards<br />like a champion.
+              Trade collectibles<br />like a champion.
             </h1>
             <p className="mt-6 max-w-md text-lg text-primary-foreground/90">
-              A community-first marketplace for Pokémon cards and collectibles. Buy from trusted sellers, close deals on WhatsApp, and earn points on every confirmed pickup.
+              A community-first marketplace for all collectible items — cards, sealed product, slabs, comics, diecast, and more. Buy from trusted sellers, close deals on WhatsApp, and earn points on every confirmed pickup.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Button asChild size="lg" className="bg-background text-foreground hover:bg-background/90">

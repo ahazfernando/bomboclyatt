@@ -53,6 +53,32 @@ export async function fileToCompressedDataUrl(
   return canvas.toDataURL("image/jpeg", quality);
 }
 
+/** Upload a product/listing image to Cloudinary via the server API. */
+export async function uploadListingImage(
+  file: File,
+  folder: "listings" | "avatars" | "documents" = "listings",
+): Promise<string> {
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("folder", folder);
+
+  const res = await fetch("/api/upload", {
+    method: "POST",
+    body: formData,
+  });
+
+  const data = (await res.json().catch(() => ({}))) as {
+    url?: string;
+    error?: string;
+  };
+
+  if (!res.ok || !data.url) {
+    throw new Error(data.error || "Upload failed");
+  }
+
+  return data.url;
+}
+
 export function approvalLabel(status: ListingApprovalStatus | undefined): string {
   switch (status) {
     case "pending":

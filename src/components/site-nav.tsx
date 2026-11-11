@@ -60,9 +60,9 @@ export function SiteFooter() {
           {/* About block */}
           <div className="space-y-8">
             <div>
-              <h3 className="font-semibold text-tuft text-base">The Emberdex Community</h3>
+              <h3 className="font-semibold text-tuft text-base">The Bomboclyatt Community</h3>
               <p className="mt-3 text-sm text-tuft/70 leading-relaxed max-w-sm">
-                A community-first trading card marketplace built for collectors. Buy from trusted sellers, close deals on WhatsApp, and earn points on every confirmed pickup.
+                A community-first marketplace for all collectible items. Buy from trusted sellers, close deals on WhatsApp, and earn points on every confirmed pickup.
               </p>
             </div>
             <div className="grid gap-8 sm:grid-cols-2 max-w-lg">
@@ -75,7 +75,7 @@ export function SiteFooter() {
               <div>
                 <h4 className="font-semibold text-tuft text-sm">Weekly Giveaways</h4>
                 <p className="mt-2 text-sm text-tuft/70 leading-relaxed">
-                  Free packs, single cards, and sealed product drops for active community members.
+                  Free packs, singles, sealed product, and collectible drops for active community members.
                 </p>
               </div>
               <div>
@@ -97,7 +97,7 @@ export function SiteFooter() {
           <div>
             <div className="text-xs font-semibold uppercase tracking-widest text-koromiko">Marketplace</div>
             <ul className="mt-4 space-y-3 text-sm">
-              <li><Link href="/browse" className="hover:text-crusta transition-colors">Buy Cards</Link></li>
+              <li><Link href="/browse" className="hover:text-crusta transition-colors">Buy Collectibles</Link></li>
               <li><Link href="/browse" className="hover:text-crusta transition-colors">New Drops</Link></li>
               <li><Link href="/events" className="hover:text-crusta transition-colors">Events</Link></li>
               <li><Link href="/giveaways" className="hover:text-crusta transition-colors">Giveaways</Link></li>
@@ -126,7 +126,7 @@ export function SiteFooter() {
               href="/auth?mode=register"
               className="inline-flex items-center justify-center border-2 border-tuft px-8 py-3 text-sm font-semibold tracking-widest uppercase text-tuft hover:bg-tuft hover:text-maple transition-colors"
             >
-              Join Emberdex
+              Join Bomboclyatt
             </Link>
             <a href="https://wa.me/94777490077" className="text-sm text-tuft/80 hover:text-crusta transition-colors">
               +94777490077
@@ -152,7 +152,7 @@ export function SiteFooter() {
             </nav>
           </div>
           <p className="text-sm text-tuft/60 max-w-md lg:text-right">
-            A community-first marketplace for Pokémon cards and collectibles. Trusted sellers, real people, real trades.
+            A community-first marketplace for all collectible items. Trusted sellers, real people, real trades.
           </p>
         </div>
 

@@ -27,7 +27,7 @@ export const seedUsers: User[] = [
       {
         from: "u-2",
         stars: 5,
-        comment: "Fast shipping, cards exactly as described.",
+        comment: "Fast shipping, items exactly as described.",
         date: "2026-06-01",
       },
     ],
@@ -67,7 +67,7 @@ export const seedEvents: Event[] = [
     id: "e-1",
     sellerId: "u-1",
     title: "Vintage WOTC Meetup",
-    description: "Trade night with graded card viewing.",
+    description: "Trade night with graded collectible viewing.",
     date: "2026-08-14",
     location: "Cerulean City Hall",
     cover: img("photo-1511578314322-379afb476865"),

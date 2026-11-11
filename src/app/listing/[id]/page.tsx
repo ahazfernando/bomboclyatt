@@ -255,7 +255,7 @@ export default function ListingDetail() {
 
           {isSeller && !listing.sold && currentUser && (
             <div className="mt-6 rounded-2xl border border-border p-4 bg-card">
-              <p className="text-sm font-medium mb-2">Confirm this card was purchased</p>
+              <p className="text-sm font-medium mb-2">Confirm this item was purchased</p>
               <p className="text-xs text-muted-foreground mb-3">Select the buyer — they'll earn 10 points once you confirm.</p>
               <div className="flex flex-wrap gap-2">
                 {users.filter((u) => u.id !== currentUser.id).map((u) => (
@@ -318,7 +318,7 @@ export default function ListingDetail() {
         {tab === "details" && (
           <div className="grid gap-8 md:grid-cols-2 max-w-4xl">
             <div>
-              <h3 className="font-semibold">About this card</h3>
+              <h3 className="font-semibold">About this item</h3>
               <p className="mt-3 text-sm text-foreground/80 leading-relaxed">{listing.description}</p>
             </div>
             <dl className="grid grid-cols-2 gap-y-3 text-sm">
@@ -349,7 +349,7 @@ export default function ListingDetail() {
 
             <div className="mt-6 grid gap-4 md:grid-cols-3">
               {listing.reviews.length === 0 && (
-                <p className="text-muted-foreground text-sm md:col-span-3">No reviews yet — be the first once you pick this card up.</p>
+                <p className="text-muted-foreground text-sm md:col-span-3">No reviews yet — be the first once you pick this item up.</p>
               )}
               {listing.reviews.map((r, i) => {
                 const from = users.find((u) => u.id === r.from);
@@ -397,8 +397,8 @@ export default function ListingDetail() {
           <div className="max-w-3xl space-y-4">
             {[
               { q: "How do I complete the purchase?", a: "Tap Buy on WhatsApp — it opens a chat with the seller pre-filled with the listing details. Arrange pickup or shipping directly." },
-              { q: "Do I earn points for this order?", a: "Yes — you earn 10 points once the seller confirms you picked up the card." },
-              { q: "What if the card doesn't match the description?", a: "Leave a review reflecting your experience. Sellers rely on reputation, and admins review low ratings." },
+              { q: "Do I earn points for this order?", a: "Yes — you earn 10 points once the seller confirms you picked up the item." },
+              { q: "What if the item doesn't match the description?", a: "Leave a review reflecting your experience. Sellers rely on reputation, and admins review low ratings." },
             ].map((f) => (
               <details key={f.q} className="group rounded-2xl border border-border bg-card p-5">
                 <summary className="flex items-center justify-between cursor-pointer font-medium">

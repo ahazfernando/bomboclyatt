@@ -12,7 +12,7 @@ const faqs = [
   },
   {
     q: "Why does Buy Now redirect to WhatsApp?",
-    a: "Emberdex is a directory — payments and shipping details are negotiated directly between buyer and seller through WhatsApp.",
+    a: "Bomboclyatt is a directory — payments and shipping details are negotiated directly between buyer and seller through WhatsApp.",
   },
   {
     q: "How do I moderate a listing?",
@@ -34,8 +34,8 @@ export default function Help() {
       <div className="grid gap-4 sm:grid-cols-3">
         {[
           { icon: LifeBuoy, title: "Documentation", body: "Product tours and setup guides." },
-          { icon: MessageCircle, title: "Live chat", body: "Chat with the Emberdex team." },
-          { icon: Mail, title: "Email support", body: "support@emberdex.com" },
+          { icon: MessageCircle, title: "Live chat", body: "Chat with the Bomboclyatt team." },
+          { icon: Mail, title: "Email support", body: "support@bomboclyatt.com" },
         ].map((c) => (
           <div key={c.title} className="rounded-3xl bg-background p-5 shadow-card">
             <div className="grid h-10 w-10 place-items-center rounded-full bg-gradient-hero text-primary-foreground shadow-glow">

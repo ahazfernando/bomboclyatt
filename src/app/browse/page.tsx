@@ -81,12 +81,12 @@ function BrowseContent() {
 
   return (
     <div className="page-shell py-10">
-      <h1 className="display text-5xl">Browse cards</h1>
+      <h1 className="display text-5xl">Browse collectibles</h1>
       <p className="text-muted-foreground mt-2">{filtered.length} listings available</p>
 
       <div className="mt-6 flex flex-col gap-3 md:flex-row md:items-center">
         <Input
-          placeholder="Search cards, sets…"
+          placeholder="Search items, sets, categories…"
           value={q}
           onChange={(e) => setQ(e.target.value)}
           className="w-full flex-1 bg-card"
@@ -200,7 +200,7 @@ function BrowseContent() {
         {/* Results */}
         <div>
           {filtered.length === 0 ? (
-            <p className="mt-16 text-center text-muted-foreground">No cards match your filters.</p>
+            <p className="mt-16 text-center text-muted-foreground">No items match your filters.</p>
           ) : view === "grid" ? (
             <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
               {filtered.map((l) => <ListingCard key={l.id} listing={l} />)}
