@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type SyntheticEvent } from "react";
+import { useEffect, useState, type SyntheticEvent } from "react";
 import { Check, Copy, Facebook, Mail, MessageCircle, Share2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -21,7 +21,7 @@ type ListingShareProps = {
   className?: string;
 };
 
-function listingUrl(listingId: string) {
+function getListingUrl(listingId: string) {
   if (typeof window === "undefined") return `/listing/${listingId}`;
   return `${window.location.origin}/listing/${listingId}`;
 }
@@ -37,19 +37,23 @@ export function ListingShareButton({
   className,
 }: ListingShareProps) {
   const [copied, setCopied] = useState(false);
-  const url = useMemo(() => listingUrl(listingId), [listingId]);
+  const [canNativeShare, setCanNativeShare] = useState(false);
   const text = shareText(title);
-  const canNativeShare =
-    typeof navigator !== "undefined" && typeof navigator.share === "function";
+
+  useEffect(() => {
+    setCanNativeShare(typeof navigator.share === "function");
+  }, []);
 
   const stop = (e: SyntheticEvent) => {
     e.preventDefault();
     e.stopPropagation();
   };
 
+  const resolveUrl = () => getListingUrl(listingId);
+
   const copyLink = async () => {
     try {
-      await navigator.clipboard.writeText(url);
+      await navigator.clipboard.writeText(resolveUrl());
       setCopied(true);
       toast.success("Link copied");
       window.setTimeout(() => setCopied(false), 1600);
@@ -64,7 +68,7 @@ export function ListingShareButton({
 
   const nativeShare = async () => {
     try {
-      await navigator.share({ title, text, url });
+      await navigator.share({ title, text, url: resolveUrl() });
     } catch (err) {
       if (err instanceof DOMException && err.name === "AbortError") return;
       toast.error("Couldn’t open share sheet");
@@ -116,9 +120,10 @@ export function ListingShareButton({
           Copy link
         </DropdownMenuItem>
         <DropdownMenuItem
-          onSelect={() =>
-            openShare(`https://wa.me/?text=${encodeURIComponent(`${text}\n${url}`)}`)
-          }
+          onSelect={() => {
+            const url = resolveUrl();
+            openShare(`https://wa.me/?text=${encodeURIComponent(`${text}\n${url}`)}`);
+          }}
         >
           <MessageCircle className="mr-2 h-4 w-4" />
           WhatsApp
@@ -126,7 +131,7 @@ export function ListingShareButton({
         <DropdownMenuItem
           onSelect={() =>
             openShare(
-              `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`,
+              `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(resolveUrl())}`,
             )
           }
         >
@@ -134,21 +139,23 @@ export function ListingShareButton({
           Facebook
         </DropdownMenuItem>
         <DropdownMenuItem
-          onSelect={() =>
+          onSelect={() => {
+            const url = resolveUrl();
             openShare(
               `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`,
-            )
-          }
+            );
+          }}
         >
           <Share2 className="mr-2 h-4 w-4" />
           X / Twitter
         </DropdownMenuItem>
         <DropdownMenuItem
-          onSelect={() =>
+          onSelect={() => {
+            const url = resolveUrl();
             openShare(
               `mailto:?subject=${encodeURIComponent(text)}&body=${encodeURIComponent(`${text}\n\n${url}`)}`,
-            )
-          }
+            );
+          }}
         >
           <Mail className="mr-2 h-4 w-4" />
           Email
