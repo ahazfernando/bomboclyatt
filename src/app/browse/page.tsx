@@ -48,6 +48,9 @@ function BrowseContent() {
   const [view, setView] = useState<"grid" | "list">("list");
   const [sort, setSort] = useState<Sort>(locationId ? "nearest" : "newest");
   const [distance, setDistance] = useState<DistanceFilter>("any");
+  const [cityFilter, setCityFilter] = useState<string[]>(() =>
+    locationId ? [locationId] : [],
+  );
 
   useEffect(() => {
     if (locationId && sort === "newest") setSort("nearest");
@@ -68,15 +71,6 @@ function BrowseContent() {
     });
   };
 
-  const listingCounts = useMemo(() => {
-    const counts: Record<string, number> = {};
-    for (const l of listings) {
-      if (!isListingApproved(l) || !l.location) continue;
-      counts[l.location] = (counts[l.location] ?? 0) + 1;
-    }
-    return counts;
-  }, [listings]);
-
   const filtered = useMemo(() => {
     const out = listings.filter(
       (l) =>
@@ -87,6 +81,8 @@ function BrowseContent() {
         l.price >= price[0] &&
         l.price <= price[1] &&
         matchesDistanceFilter(locationId, l.location, distance) &&
+        (cityFilter.length === 0 ||
+          (l.location != null && cityFilter.includes(l.location))) &&
         (q === "" ||
           l.title.toLowerCase().includes(q.toLowerCase()) ||
           l.set.toLowerCase().includes(q.toLowerCase()) ||
@@ -105,15 +101,7 @@ function BrowseContent() {
       return b.createdAt.localeCompare(a.createdAt);
     };
     return sortListingsWithBoost(out, secondarySort);
-  }, [listings, cat, cond, hideSold, price, q, sort, locationId, distance]);
-
-  const nearbyCount = useMemo(() => {
-    if (!locationId) return 0;
-    return filtered.filter((l) => {
-      const km = distanceBetweenLocationsKm(locationId, l.location);
-      return km != null && km <= 50;
-    }).length;
-  }, [filtered, locationId]);
+  }, [listings, cat, cond, hideSold, price, q, sort, locationId, distance, cityFilter]);
 
   const resetFilters = () => {
     setCat("All");
@@ -123,12 +111,6 @@ function BrowseContent() {
     setQ("");
     setDistance("any");
   };
-
-  const locationHint = !location
-    ? "Set a city so we can sort by pickup distance."
-    : nearbyCount > 0
-      ? `${nearbyCount} listing${nearbyCount === 1 ? "" : "s"} within 50 km — adjust radius anytime.`
-      : "We’ll prioritize listings closest to you.";
 
   return (
     <div>
@@ -155,32 +137,28 @@ function BrowseContent() {
       </section>
 
       <div className="page-shell py-10">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-stretch">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center">
           <LocationTrigger
-            className="w-full sm:flex-1"
+            compact
+            className="h-12 w-full max-w-none shrink-0 md:w-[15rem]"
             showDistance
             distance={distance}
-            listingCounts={listingCounts}
-            onApply={({ distance: next }) => {
+            selectedIds={cityFilter}
+            onApply={({ locationIds, distance: next }) => {
+              setCityFilter(locationIds);
               setDistance(next);
-              if (next !== "any") setSort("nearest");
+              if (locationIds.length > 0) setSort("nearest");
             }}
           />
-          <p className="flex items-center text-xs text-muted-foreground sm:max-w-[14rem] sm:self-center">
-            {locationHint}
-          </p>
-        </div>
-
-        <div className="mt-6 flex flex-col gap-3 md:flex-row md:items-center">
           <Input
             placeholder="Search items, sets, locations…"
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            className="w-full flex-1 bg-card"
+            className="h-12 w-full flex-1 bg-card text-base md:text-sm"
           />
           <div className="flex items-center gap-2 md:ml-auto">
             <Select value={sort} onValueChange={(v) => setSort(v as Sort)}>
-              <SelectTrigger className="w-[180px] bg-card">
+              <SelectTrigger className="h-12 w-[180px] bg-card">
                 <SelectValue placeholder="Sort" />
               </SelectTrigger>
               <SelectContent>
@@ -190,18 +168,18 @@ function BrowseContent() {
                 <SelectItem value="price-desc">Price: High → Low</SelectItem>
               </SelectContent>
             </Select>
-            <div className="flex overflow-hidden rounded-md border border-border">
+            <div className="flex h-12 overflow-hidden rounded-md border border-border">
               <button
                 onClick={() => setView("list")}
                 aria-label="List view"
-                className={`p-2 ${view === "list" ? "bg-primary text-primary-foreground" : "bg-card"}`}
+                className={`grid h-full place-items-center px-3 ${view === "list" ? "bg-primary text-primary-foreground" : "bg-card"}`}
               >
                 <List className="h-4 w-4" />
               </button>
               <button
                 onClick={() => setView("grid")}
                 aria-label="Grid view"
-                className={`p-2 ${view === "grid" ? "bg-primary text-primary-foreground" : "bg-card"}`}
+                className={`grid h-full place-items-center px-3 ${view === "grid" ? "bg-primary text-primary-foreground" : "bg-card"}`}
               >
                 <LayoutGrid className="h-4 w-4" />
               </button>

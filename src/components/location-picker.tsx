@@ -10,54 +10,92 @@ import {
   locationsByRegion,
 } from "@/lib/locations";
 import { useLocation } from "@/lib/location";
+import { useStore } from "@/lib/store";
+import { isListingApproved } from "@/lib/listing-media";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { Check, ChevronDown, MapPin, Search, X } from "lucide-react";
+import { ArrowLeft, ChevronRight, MapPin, Search } from "lucide-react";
+
+function formatAds(n: number) {
+  return `${n.toLocaleString()} ad${n === 1 ? "" : "s"}`;
+}
+
+export function locationSelectionLabel(ids: string[]) {
+  if (ids.length === 0) return "All of Sri Lanka";
+  if (ids.length === 1) {
+    return MARKET_LOCATIONS.find((l) => l.id === ids[0])?.name ?? "1 location";
+  }
+  return `${ids.length} locations`;
+}
 
 type LocationPickerProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  /** When true, draft includes a travel-radius control (browse). */
+  /** Empty = All of Sri Lanka. Defaults to the saved locationId. */
+  selectedIds?: string[];
   showDistance?: boolean;
   distance?: DistanceFilter;
-  onApply?: (next: { locationId: string | null; distance: DistanceFilter }) => void;
-  listingCounts?: Record<string, number>;
+  onApply?: (next: { locationIds: string[]; distance: DistanceFilter }) => void;
 };
 
 export function LocationPicker({
   open,
   onOpenChange,
+  selectedIds,
   showDistance = false,
   distance = "any",
   onApply,
-  listingCounts,
 }: LocationPickerProps) {
   const { locationId, setLocationId } = useLocation();
+  const { listings } = useStore();
+  const initialIds = selectedIds ?? (locationId ? [locationId] : []);
+
   const [query, setQuery] = useState("");
-  const [draftId, setDraftId] = useState<string | null>(locationId);
+  const [draft, setDraft] = useState<Set<string>>(() => new Set(initialIds));
   const [draftDistance, setDraftDistance] = useState<DistanceFilter>(distance);
-  const [openRegions, setOpenRegions] = useState<Set<string>>(() => new Set());
+  const [activeRegion, setActiveRegion] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open) return;
     setQuery("");
-    setDraftId(locationId);
+    setDraft(new Set(selectedIds ?? (locationId ? [locationId] : [])));
     setDraftDistance(distance);
-    const region = getLocationById(locationId)?.region;
-    setOpenRegions(region ? new Set([region]) : new Set(["Western"]));
-  }, [open, locationId, distance]);
+    setActiveRegion(null);
+  }, [open, selectedIds, locationId, distance]);
 
-  const filtered = useMemo(() => {
+  const counts = useMemo(() => {
+    const map: Record<string, number> = {};
+    for (const loc of MARKET_LOCATIONS) map[loc.id] = 0;
+    for (const l of listings) {
+      if (!isListingApproved(l) || !l.location) continue;
+      if (map[l.location] != null) map[l.location] += 1;
+    }
+    return map;
+  }, [listings]);
+
+  const totalCount = useMemo(
+    () => Object.values(counts).reduce((sum, n) => sum + n, 0),
+    [counts],
+  );
+
+  const regions = useMemo(() => locationsByRegion(), []);
+
+  const citiesInRegion = useMemo(() => {
+    if (!activeRegion) return [];
+    return MARKET_LOCATIONS.filter((l) => l.region === activeRegion);
+  }, [activeRegion]);
+
+  const searchResults = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return MARKET_LOCATIONS;
+    if (!q) return [];
     return MARKET_LOCATIONS.filter(
       (l) =>
         l.name.toLowerCase().includes(q) ||
@@ -65,185 +103,201 @@ export function LocationPicker({
     );
   }, [query]);
 
-  const groups = useMemo(() => locationsByRegion(filtered), [filtered]);
-  const isSearching = query.trim().length > 0;
-  const draftLocation = getLocationById(draftId) ?? null;
+  const regionCount = (region: string) =>
+    MARKET_LOCATIONS.filter((l) => l.region === region).reduce(
+      (sum, l) => sum + (counts[l.id] ?? 0),
+      0,
+    );
 
-  const toggleRegion = (region: string) => {
-    setOpenRegions((prev) => {
+  const regionCityIds = (region: string) =>
+    MARKET_LOCATIONS.filter((l) => l.region === region).map((l) => l.id);
+
+  const regionCheckState = (region: string): boolean | "indeterminate" => {
+    const ids = regionCityIds(region);
+    const selected = ids.filter((id) => draft.has(id)).length;
+    if (selected === 0) return false;
+    if (selected === ids.length) return true;
+    return "indeterminate";
+  };
+
+  const toggleCity = (id: string) => {
+    setDraft((prev) => {
       const next = new Set(prev);
-      if (next.has(region)) next.delete(region);
-      else next.add(region);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
       return next;
     });
   };
 
-  const apply = () => {
-    setLocationId(draftId);
-    onApply?.({ locationId: draftId, distance: draftId ? draftDistance : "any" });
-    onOpenChange(false);
+  const toggleRegion = (region: string) => {
+    const ids = regionCityIds(region);
+    setDraft((prev) => {
+      const next = new Set(prev);
+      const allSelected = ids.every((id) => next.has(id));
+      if (allSelected) ids.forEach((id) => next.delete(id));
+      else ids.forEach((id) => next.add(id));
+      return next;
+    });
+  };
+
+  const selectAll = () => {
+    setDraft(new Set());
+    setDraftDistance("any");
   };
 
   const reset = () => {
-    setDraftId(null);
+    setDraft(new Set());
     setDraftDistance("any");
     setQuery("");
+    setActiveRegion(null);
   };
 
-  const countFor = (id: string) => listingCounts?.[id];
+  const apply = () => {
+    const locationIds = Array.from(draft);
+    const nextDistance = locationIds.length === 0 ? "any" : draftDistance;
+    setLocationId(locationIds[0] ?? null);
+    onApply?.({ locationIds, distance: nextDistance });
+    onOpenChange(false);
+  };
+
+  const isAll = draft.size === 0;
+  const searching = query.trim().length > 0;
+  const draftLocation = getLocationById(Array.from(draft)[0]) ?? null;
+
+  const renderCityRow = (loc: (typeof MARKET_LOCATIONS)[number]) => {
+    const checked = draft.has(loc.id);
+    return (
+      <div
+        key={loc.id}
+        className="flex items-center gap-3 border-b border-border px-4 py-3.5 last:border-b-0"
+      >
+        <Checkbox
+          checked={checked}
+          onCheckedChange={() => toggleCity(loc.id)}
+          aria-label={`Select ${loc.name}`}
+        />
+        <button
+          type="button"
+          className="flex min-w-0 flex-1 items-center justify-between gap-3 text-left"
+          onClick={() => toggleCity(loc.id)}
+        >
+          <span className="truncate text-[15px] font-medium text-foreground">{loc.name}</span>
+          <span className="shrink-0 text-sm text-muted-foreground">
+            {formatAds(counts[loc.id] ?? 0)}
+          </span>
+        </button>
+      </div>
+    );
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         className={cn(
-          "flex max-h-[min(40rem,90vh)] w-[calc(100%-1.5rem)] max-w-md flex-col gap-0 overflow-hidden p-0 sm:rounded-2xl",
+          "flex max-h-[min(640px,85vh)] w-[calc(100%-1.5rem)] max-w-md flex-col gap-0 overflow-hidden p-0 sm:rounded-2xl",
         )}
       >
-        <DialogHeader className="space-y-3 border-b border-border/70 px-5 pb-4 pt-5 pr-12 text-left">
-          <DialogTitle className="text-xl">Where are you shopping?</DialogTitle>
-          <DialogDescription className="text-sm leading-relaxed">
-            Pick a city so we can sort by pickup distance. No filter chips — just set your base and how far you’ll go.
-          </DialogDescription>
+        <DialogTitle className="sr-only">Choose locations</DialogTitle>
+        <DialogDescription className="sr-only">
+          Search and select locations to filter marketplace listings.
+        </DialogDescription>
+
+        <div className="border-b border-border px-4 pb-3 pt-4 pr-12">
           <div className="relative">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search cities or regions"
-              className="h-11 rounded-xl border-border/80 bg-muted/40 pl-9 pr-9"
-              autoFocus
+              onChange={(e) => {
+                setQuery(e.target.value);
+                if (e.target.value.trim()) setActiveRegion(null);
+              }}
+              placeholder="Search for locations"
+              className="h-11 rounded-xl border-border bg-muted/40 pl-9"
             />
-            {query && (
-              <button
-                type="button"
-                aria-label="Clear search"
-                onClick={() => setQuery("")}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
-            )}
           </div>
-        </DialogHeader>
+        </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto">
-          <button
-            type="button"
-            onClick={() => {
-              setDraftId(null);
-              setDraftDistance("any");
-            }}
-            className={cn(
-              "flex w-full items-center gap-3 border-b border-border/60 px-5 py-3.5 text-left transition-colors",
-              draftId == null
-                ? "bg-primary/10 text-foreground"
-                : "hover:bg-muted/60",
-            )}
-          >
-            <span
-              className={cn(
-                "grid h-5 w-5 shrink-0 place-items-center rounded-full border",
-                draftId == null
-                  ? "border-primary bg-primary text-primary-foreground"
-                  : "border-border",
+          {searching ? (
+            <div>
+              <div className="px-4 pb-1 pt-4 text-base font-semibold">Locations</div>
+              {searchResults.length === 0 ? (
+                <p className="px-4 py-8 text-sm text-muted-foreground">
+                  No locations match your search.
+                </p>
+              ) : (
+                searchResults.map(renderCityRow)
               )}
-            >
-              {draftId == null ? <Check className="h-3 w-3" /> : null}
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="block text-sm font-semibold">Anywhere in Sri Lanka</span>
-              <span className="block text-xs text-muted-foreground">
-                See every listing, unsorted by distance
-              </span>
-            </span>
-          </button>
-
-          {groups.length === 0 ? (
-            <p className="px-5 py-10 text-center text-sm text-muted-foreground">
-              No cities match “{query.trim()}”.
-            </p>
+            </div>
+          ) : activeRegion ? (
+            <div>
+              <button
+                type="button"
+                onClick={() => setActiveRegion(null)}
+                className="flex w-full items-center gap-2 border-b border-border px-4 py-3.5 text-left text-[15px] font-semibold hover:bg-muted/40"
+              >
+                <ArrowLeft className="h-4 w-4 text-primary" />
+                {activeRegion}
+              </button>
+              {citiesInRegion.map(renderCityRow)}
+            </div>
           ) : (
-            groups.map(({ region, cities }) => {
-              const expanded = isSearching || openRegions.has(region);
-              const regionSelected = cities.some((c) => c.id === draftId);
-              return (
-                <div key={region} className="border-b border-border/50 last:border-b-0">
-                  {!isSearching && (
+            <div>
+              <div className="px-4 pb-1 pt-4 text-base font-semibold">Locations</div>
+
+              <button
+                type="button"
+                onClick={selectAll}
+                className={cn(
+                  "flex w-full items-center justify-between gap-3 px-4 py-3.5 text-left transition-colors",
+                  isAll ? "bg-primary/10" : "hover:bg-muted/40",
+                )}
+              >
+                <span className={cn("text-[15px] font-medium", isAll && "text-primary")}>
+                  All of Sri Lanka
+                </span>
+                <span className="text-sm text-muted-foreground">{formatAds(totalCount)}</span>
+              </button>
+
+              {regions.map(({ region }) => {
+                const state = regionCheckState(region);
+                return (
+                  <div
+                    key={region}
+                    className="flex items-center gap-2 border-t border-border px-4 py-3.5"
+                  >
+                    <Checkbox
+                      checked={state}
+                      onCheckedChange={() => toggleRegion(region)}
+                      aria-label={`Select ${region}`}
+                    />
                     <button
                       type="button"
-                      onClick={() => toggleRegion(region)}
-                      className="flex w-full items-center justify-between gap-3 px-5 py-3 text-left hover:bg-muted/40"
+                      className="flex min-w-0 flex-1 items-center justify-between gap-3 text-left"
+                      onClick={() => setActiveRegion(region)}
                     >
-                      <span className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                      <span className="truncate text-[15px] font-medium text-foreground">
                         {region}
-                        {regionSelected ? (
-                          <span className="ml-2 normal-case tracking-normal text-primary">
-                            · {getLocationById(draftId)?.name}
-                          </span>
-                        ) : null}
                       </span>
-                      <ChevronDown
-                        className={cn(
-                          "h-4 w-4 text-muted-foreground transition-transform",
-                          expanded && "rotate-180",
-                        )}
-                      />
+                      <span className="flex shrink-0 items-center gap-2 text-sm text-muted-foreground">
+                        {formatAds(regionCount(region))}
+                        <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                      </span>
                     </button>
-                  )}
-                  {expanded &&
-                    cities.map((city) => {
-                      const selected = draftId === city.id;
-                      const count = countFor(city.id);
-                      return (
-                        <button
-                          key={city.id}
-                          type="button"
-                          onClick={() => setDraftId(city.id)}
-                          className={cn(
-                            "flex w-full items-center gap-3 px-5 py-3 text-left transition-colors",
-                            isSearching ? "" : "pl-7",
-                            selected ? "bg-primary/10" : "hover:bg-muted/50",
-                          )}
-                        >
-                          <span
-                            className={cn(
-                              "grid h-5 w-5 shrink-0 place-items-center rounded-full border",
-                              selected
-                                ? "border-primary bg-primary text-primary-foreground"
-                                : "border-border",
-                            )}
-                          >
-                            {selected ? <Check className="h-3 w-3" /> : null}
-                          </span>
-                          <span className="min-w-0 flex-1">
-                            <span className="block text-sm font-semibold">{city.name}</span>
-                            {isSearching && (
-                              <span className="block text-xs text-muted-foreground">
-                                {city.region}
-                              </span>
-                            )}
-                          </span>
-                          {typeof count === "number" && (
-                            <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
-                              {count.toLocaleString()}
-                            </span>
-                          )}
-                        </button>
-                      );
-                    })}
-                </div>
-              );
-            })
+                  </div>
+                );
+              })}
+            </div>
           )}
         </div>
 
-        {showDistance && draftId && (
-          <div className="border-t border-border/70 bg-muted/25 px-5 py-4">
+        {showDistance && draft.size > 0 && (
+          <div className="border-t border-border bg-muted/25 px-4 py-3">
             <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
               Travel radius
             </p>
             <p className="mt-1 text-sm text-muted-foreground">
-              How far from {draftLocation?.name} are you willing to go?
+              How far from {draftLocation?.name ?? "your selection"} are you willing to go?
             </p>
             <div className="mt-3 flex flex-wrap gap-2">
               {DISTANCE_OPTIONS.map((opt) => (
@@ -265,21 +319,17 @@ export function LocationPicker({
           </div>
         )}
 
-        <div className="flex items-center gap-3 border-t border-border/70 px-5 py-4">
+        <div className="flex items-center justify-between gap-3 border-t border-border px-4 py-3">
           <Button
             type="button"
             variant="outline"
-            className="min-w-[5.5rem]"
             onClick={reset}
+            className="min-w-[7.5rem] border-primary text-primary hover:bg-primary/10 hover:text-primary"
           >
             Reset
           </Button>
-          <Button type="button" className="min-w-0 flex-1" onClick={apply}>
-            {draftId
-              ? showDistance
-                ? `Show · ${formatShoppingNear(draftLocation, draftDistance)}`
-                : `Shop near ${draftLocation?.name}`
-              : "Show all of Sri Lanka"}
+          <Button type="button" onClick={apply} className="min-w-[7.5rem]">
+            Show
           </Button>
         </div>
       </DialogContent>
@@ -291,8 +341,8 @@ type LocationTriggerProps = {
   className?: string;
   showDistance?: boolean;
   distance?: DistanceFilter;
-  onApply?: (next: { locationId: string | null; distance: DistanceFilter }) => void;
-  listingCounts?: Record<string, number>;
+  selectedIds?: string[];
+  onApply?: (next: { locationIds: string[]; distance: DistanceFilter }) => void;
   /** Compact control for the site nav. */
   compact?: boolean;
 };
@@ -301,13 +351,16 @@ export function LocationTrigger({
   className,
   showDistance = false,
   distance = "any",
+  selectedIds,
   onApply,
-  listingCounts,
   compact = false,
 }: LocationTriggerProps) {
-  const { location } = useLocation();
+  const { location, locationId } = useLocation();
   const [open, setOpen] = useState(false);
-  const label = formatShoppingNear(location, showDistance ? distance : "any");
+  const ids = selectedIds ?? (locationId ? [locationId] : []);
+  const label = selectedIds
+    ? locationSelectionLabel(selectedIds)
+    : formatShoppingNear(location, showDistance ? distance : "any");
 
   return (
     <>
@@ -319,7 +372,7 @@ export function LocationTrigger({
           "group inline-flex items-center gap-2 text-left transition-colors",
           compact
             ? "h-9 max-w-[11.5rem] rounded-md border border-input bg-card px-3 text-sm hover:bg-accent/10"
-            : "rounded-2xl border border-border/80 bg-card/80 px-4 py-3 hover:border-primary/35 hover:bg-card",
+            : "w-full rounded-2xl border border-border/80 bg-card/80 px-4 py-3 hover:border-primary/35 hover:bg-card",
           className,
         )}
       >
@@ -327,24 +380,26 @@ export function LocationTrigger({
           className={cn(
             "shrink-0 text-primary",
             compact ? "h-3.5 w-3.5" : "h-4 w-4",
-            location && "fill-primary/15",
+            ids.length > 0 && "fill-primary/15",
           )}
         />
         <span className="min-w-0 flex-1 truncate">
           {compact ? (
-            <span className="font-medium">{location?.name ?? "Set location"}</span>
+            <span className="font-medium">{locationSelectionLabel(ids)}</span>
           ) : (
             <>
               <span className="block text-sm font-semibold leading-tight">{label}</span>
               <span className="mt-0.5 block text-xs text-muted-foreground">
-                {location ? "Tap to change city or radius" : "Set a city for nearer pickups"}
+                {ids.length > 0
+                  ? "Tap to change cities or radius"
+                  : "Choose locations to filter listings"}
               </span>
             </>
           )}
         </span>
-        <ChevronDown
+        <ChevronRight
           className={cn(
-            "shrink-0 text-muted-foreground transition-transform group-hover:text-foreground",
+            "shrink-0 text-muted-foreground transition-colors group-hover:text-foreground",
             compact ? "h-3.5 w-3.5" : "h-4 w-4",
           )}
         />
@@ -352,10 +407,10 @@ export function LocationTrigger({
       <LocationPicker
         open={open}
         onOpenChange={setOpen}
+        selectedIds={ids}
         showDistance={showDistance}
         distance={distance}
         onApply={onApply}
-        listingCounts={listingCounts}
       />
     </>
   );
