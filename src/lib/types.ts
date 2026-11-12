@@ -59,6 +59,8 @@ export interface Listing {
   images: string[];
   description: string;
   category: "Electronics" | "Games" | "TCG" | "Comics" | "Diecast";
+  /** Pickup / meetup city id from MARKET_LOCATIONS. */
+  location?: string;
   sold: boolean;
   buyerId?: string;
   createdAt: string;

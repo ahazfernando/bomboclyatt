@@ -17,6 +17,7 @@ import { ListingOffersBids } from "@/components/listing-offers-bids";
 import { listingDiscountPercent } from "@/lib/listing-pricing";
 import { Badge } from "@/components/ui/badge";
 import { isListingApproved, listingImages } from "@/lib/listing-media";
+import { locationLabel } from "@/lib/locations";
 
 type Tab = "details" | "reviews" | "faq";
 
@@ -325,6 +326,7 @@ export default function ListingDetail() {
               <dt className="text-muted-foreground">Set</dt><dd className="font-medium">{listing.set}</dd>
               <dt className="text-muted-foreground">Category</dt><dd className="font-medium">{listing.category}</dd>
               <dt className="text-muted-foreground">Condition</dt><dd className="font-medium">{activeCondition}</dd>
+              <dt className="text-muted-foreground">Pickup</dt><dd className="font-medium">{locationLabel(listing.location)}</dd>
               <dt className="text-muted-foreground">Listed</dt><dd className="font-medium">{listing.createdAt}</dd>
             </dl>
           </div>

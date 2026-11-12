@@ -30,7 +30,7 @@ export default function Index() {
               </p>
               <div className="mt-8 flex flex-wrap gap-3">
                 <Button asChild size="lg" className="bg-background text-foreground hover:bg-background/90">
-                  <Link href="/browse">Browse categories</Link>
+                  <Link href="/browse">Go to Marketplace</Link>
                 </Button>
                 <Button asChild size="lg" variant="outline" className="border-white/40 bg-transparent text-primary-foreground hover:bg-white/10">
                   <Link href="/auth?mode=register">Become a seller</Link>

@@ -51,6 +51,7 @@ const emptyForm: ListingForm = {
   description: "",
   category: "Games",
   condition: "Near Mint",
+  location: "colombo",
   featured: false,
 };
 
@@ -63,6 +64,7 @@ function listingToForm(l: Listing): ListingForm {
     description: l.description,
     category: l.category,
     condition: l.condition,
+    location: l.location || "colombo",
     featured: l.featured ?? false,
   };
 }
@@ -106,6 +108,7 @@ export function AdminUserListings({ sellerId }: { sellerId: string }) {
       description: createForm.description,
       category: createForm.category,
       condition: createForm.condition,
+      location: createForm.location,
       featured: createForm.featured,
       approvalStatus: "approved",
     });
@@ -129,6 +132,7 @@ export function AdminUserListings({ sellerId }: { sellerId: string }) {
       description: editForm.description,
       category: editForm.category,
       condition: editForm.condition,
+      location: editForm.location,
       featured: editForm.featured,
     });
     setEditTarget(null);

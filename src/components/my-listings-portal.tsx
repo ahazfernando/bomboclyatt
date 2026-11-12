@@ -61,6 +61,7 @@ import {
   normalizeListingImages,
   uploadListingImage,
 } from "@/lib/listing-media";
+import { MARKET_LOCATIONS, locationLabel } from "@/lib/locations";
 
 const categories = ["Electronics", "Games", "TCG", "Comics", "Diecast"] as const;
 const conditions = ["Mint", "Near Mint", "Lightly Played", "Played"] as const;
@@ -73,6 +74,7 @@ export type ListingForm = {
   description: string;
   category: (typeof categories)[number];
   condition: (typeof conditions)[number];
+  location: string;
   featured: boolean;
 };
 
@@ -84,6 +86,7 @@ const emptyForm: ListingForm = {
   description: "",
   category: "Games",
   condition: "Near Mint",
+  location: "colombo",
   featured: false,
 };
 
@@ -290,6 +293,24 @@ export function ListingFormFields({
         </div>
       </div>
 
+      <div>
+        <Label>Pickup location</Label>
+        <select
+          className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+          value={form.location}
+          onChange={(e) => setForm({ ...form, location: e.target.value })}
+        >
+          {MARKET_LOCATIONS.map((loc) => (
+            <option key={loc.id} value={loc.id}>
+              {loc.name} ({loc.region})
+            </option>
+          ))}
+        </select>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Buyers nearby will see this listing first when sorting by distance.
+        </p>
+      </div>
+
       <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-border bg-secondary/30 p-3">
         <Checkbox
           checked={form.featured}
@@ -319,6 +340,7 @@ function listingToForm(l: Listing): ListingForm {
     description: l.description,
     category: l.category,
     condition: l.condition,
+    location: l.location || "colombo",
     featured: l.featured ?? false,
   };
 }
@@ -334,6 +356,7 @@ function formToListingPatch(form: ListingForm) {
     description: form.description,
     category: form.category,
     condition: form.condition,
+    location: form.location,
     featured: form.featured,
   };
 }
@@ -559,7 +582,9 @@ export function MyListingsPortal() {
                       <img src={listingPrimaryImage(l)} alt="" className="h-12 w-12 rounded-lg object-cover" />
                       <div>
                         <p className="font-medium line-clamp-1">{l.title}</p>
-                        <p className="text-xs text-muted-foreground">{l.category} · {l.condition}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {l.category} · {l.condition} · {locationLabel(l.location)}
+                        </p>
                       </div>
                     </div>
                   </TableCell>

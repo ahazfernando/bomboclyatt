@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { StoreProvider } from "@/lib/store";
 import { CurrencyProvider } from "@/lib/currency";
+import { LocationProvider } from "@/lib/location";
 import { SiteNav, SiteFooter } from "@/components/site-nav";
 import { Toaster } from "@/components/ui/sonner";
 
@@ -20,10 +21,12 @@ export function Providers({ children }: { children: React.ReactNode }) {
     <QueryClientProvider client={queryClient}>
       <StoreProvider>
         <CurrencyProvider>
-          {showSiteChrome && <SiteNav />}
-          {children}
-          {showSiteChrome && <SiteFooter />}
-          <Toaster />
+          <LocationProvider>
+            {showSiteChrome && <SiteNav />}
+            {children}
+            {showSiteChrome && <SiteFooter />}
+            <Toaster />
+          </LocationProvider>
         </CurrencyProvider>
       </StoreProvider>
     </QueryClientProvider>

@@ -2,23 +2,32 @@
 
 import { useStore } from "@/lib/store";
 import { useCurrency } from "@/lib/currency";
+import { useLocation, MARKET_LOCATIONS } from "@/lib/location";
+import {
+  DISTANCE_OPTIONS,
+  distanceBetweenLocationsKm,
+  formatDistanceKm,
+  locationLabel,
+  matchesDistanceFilter,
+  type DistanceFilter,
+} from "@/lib/locations";
 import { ListingCard } from "@/components/listing-card";
 import { ListingRow } from "@/components/listing-row";
 import { Input } from "@/components/ui/input";
-import { Suspense, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { LayoutGrid, List } from "lucide-react";
+import { LayoutGrid, List, MapPin } from "lucide-react";
 import { sortListingsWithBoost } from "@/lib/boost";
 import { isListingApproved } from "@/lib/listing-media";
 
 const categories = ["All", "Electronics", "Games", "TCG", "Comics", "Diecast"] as const;
 const conditions = ["Mint", "Near Mint", "Lightly Played", "Played"] as const;
-type Sort = "newest" | "price-asc" | "price-desc";
+type Sort = "nearest" | "newest" | "price-asc" | "price-desc";
 type Category = (typeof categories)[number];
 
 function parseCategory(value: string | null): Category {
@@ -30,12 +39,19 @@ function BrowseContent() {
   const searchParams = useSearchParams();
   const { listings } = useStore();
   const { formatPrice } = useCurrency();
+  const { locationId, location, setLocationId } = useLocation();
   const [q, setQ] = useState("");
   const [cat, setCat] = useState<Category>(() => parseCategory(searchParams.get("category")));
   const [cond, setCond] = useState<Set<string>>(new Set());
   const [hideSold, setHideSold] = useState(false);
   const [view, setView] = useState<"grid" | "list">("list");
-  const [sort, setSort] = useState<Sort>("newest");
+  const [sort, setSort] = useState<Sort>(locationId ? "nearest" : "newest");
+  const [distance, setDistance] = useState<DistanceFilter>("any");
+  const [cityFilter, setCityFilter] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (locationId && sort === "newest") setSort("nearest");
+  }, [locationId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const maxPrice = useMemo(
     () => Math.max(100, ...listings.map((l) => l.price)),
@@ -52,6 +68,15 @@ function BrowseContent() {
     });
   };
 
+  const toggleCity = (id: string) => {
+    setCityFilter((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
   const filtered = useMemo(() => {
     const out = listings.filter((l) =>
       isListingApproved(l) &&
@@ -59,17 +84,35 @@ function BrowseContent() {
       (cond.size === 0 || cond.has(l.condition)) &&
       (!hideSold || !l.sold) &&
       l.price >= price[0] && l.price <= price[1] &&
+      matchesDistanceFilter(locationId, l.location, distance) &&
+      (cityFilter.size === 0 || (l.location != null && cityFilter.has(l.location))) &&
       (q === "" ||
         l.title.toLowerCase().includes(q.toLowerCase()) ||
-        l.set.toLowerCase().includes(q.toLowerCase()))
+        l.set.toLowerCase().includes(q.toLowerCase()) ||
+        locationLabel(l.location).toLowerCase().includes(q.toLowerCase()))
     );
     const secondarySort = (a: typeof out[0], b: typeof out[0]) => {
+      if (sort === "nearest" && locationId) {
+        const da = distanceBetweenLocationsKm(locationId, a.location);
+        const db = distanceBetweenLocationsKm(locationId, b.location);
+        const na = da ?? Number.POSITIVE_INFINITY;
+        const nb = db ?? Number.POSITIVE_INFINITY;
+        if (na !== nb) return na - nb;
+      }
       if (sort === "price-asc") return a.price - b.price;
       if (sort === "price-desc") return b.price - a.price;
       return b.createdAt.localeCompare(a.createdAt);
     };
     return sortListingsWithBoost(out, secondarySort);
-  }, [listings, cat, cond, hideSold, price, q, sort]);
+  }, [listings, cat, cond, hideSold, price, q, sort, locationId, distance, cityFilter]);
+
+  const nearbyCount = useMemo(() => {
+    if (!locationId) return 0;
+    return filtered.filter((l) => {
+      const km = distanceBetweenLocationsKm(locationId, l.location);
+      return km != null && km <= 50;
+    }).length;
+  }, [filtered, locationId]);
 
   const resetFilters = () => {
     setCat("All");
@@ -77,16 +120,74 @@ function BrowseContent() {
     setHideSold(false);
     setPrice([0, maxPrice]);
     setQ("");
+    setDistance("any");
+    setCityFilter(new Set());
   };
 
   return (
-    <div className="page-shell py-10">
-      <h1 className="display text-5xl">Browse collectibles</h1>
-      <p className="text-muted-foreground mt-2">{filtered.length} listings available</p>
+    <div>
+      {/* Hero */}
+      <section className="px-3 pt-3 md:px-4 md:pt-4">
+        <div className="relative overflow-hidden rounded-[2rem] md:rounded-[2.75rem] lg:rounded-[3.25rem]">
+          <img
+            src="/home/36cb6ebe2baff9c2f37bba545639b030.jpg"
+            alt=""
+            className="absolute inset-0 h-full w-full object-cover object-center"
+          />
+          <div className="absolute inset-0 bg-black/35" aria-hidden="true" />
+          <div className="page-shell relative flex min-h-[70vh] items-end py-10 md:min-h-[78vh] md:py-12 lg:py-14">
+            <div className="max-w-xl text-primary-foreground">
+              <h1 className="display text-5xl leading-[0.95] md:text-7xl">
+                Browse collectibles
+              </h1>
+              <p className="mt-6 max-w-md text-lg text-primary-foreground/90">
+                {filtered.length} listings available from trusted sellers.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div className="page-shell py-10">
+      <div className="flex flex-col gap-3 rounded-2xl border border-border bg-card/80 p-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-start gap-3">
+          <div className="mt-0.5 grid h-9 w-9 place-items-center rounded-full bg-primary/10 text-primary">
+            <MapPin className="h-4 w-4" />
+          </div>
+          <div>
+            <div className="text-sm font-semibold">
+              {location ? `Shopping near ${location.name}` : "Set your location"}
+            </div>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              {location
+                ? nearbyCount > 0
+                  ? `${nearbyCount} listing${nearbyCount === 1 ? "" : "s"} within 50 km — change anytime to find closer pickups.`
+                  : "We’ll prioritize listings closest to you. Adjust distance in Filters."
+                : "Choose a city so we can recommend products nearby and filter by distance."}
+            </p>
+          </div>
+        </div>
+        <Select
+          value={locationId ?? "all"}
+          onValueChange={(v) => setLocationId(v === "all" ? null : v)}
+        >
+          <SelectTrigger className="w-full bg-background sm:w-[220px]">
+            <SelectValue placeholder="Choose city" />
+          </SelectTrigger>
+          <SelectContent className="max-h-72">
+            <SelectItem value="all">All locations</SelectItem>
+            {MARKET_LOCATIONS.map((loc) => (
+              <SelectItem key={loc.id} value={loc.id}>
+                {loc.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
 
       <div className="mt-6 flex flex-col gap-3 md:flex-row md:items-center">
         <Input
-          placeholder="Search items, sets, categories…"
+          placeholder="Search items, sets, locations…"
           value={q}
           onChange={(e) => setQ(e.target.value)}
           className="w-full flex-1 bg-card"
@@ -97,6 +198,7 @@ function BrowseContent() {
               <SelectValue placeholder="Sort" />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="nearest">Sort: Nearest</SelectItem>
               <SelectItem value="newest">Sort: Newest</SelectItem>
               <SelectItem value="price-asc">Price: Low → High</SelectItem>
               <SelectItem value="price-desc">Price: High → Low</SelectItem>
@@ -122,13 +224,53 @@ function BrowseContent() {
       </div>
 
       <div className="mt-8 grid gap-8 lg:grid-cols-[240px_1fr]">
-        {/* Filters sidebar */}
         <aside className="space-y-6 lg:sticky lg:top-24 lg:self-start">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Filters</h2>
             <Button variant="ghost" size="sm" onClick={resetFilters} className="h-7 px-2 text-xs">
               Reset
             </Button>
+          </div>
+
+          <div>
+            <h3 className="mb-2 text-sm font-semibold">Location</h3>
+            <p className="mb-2 text-xs text-muted-foreground">
+              {location
+                ? `Distance from ${location.name}`
+                : "Set your city above to filter by distance"}
+            </p>
+            <Select
+              value={distance}
+              onValueChange={(v) => setDistance(v as DistanceFilter)}
+              disabled={!locationId}
+            >
+              <SelectTrigger className="w-full bg-card">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {DISTANCE_OPTIONS.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <div className="mt-3 max-h-40 space-y-2 overflow-y-auto pr-1">
+              {MARKET_LOCATIONS.map((loc) => (
+                <div key={loc.id} className="flex items-center gap-2">
+                  <Checkbox
+                    id={`city-${loc.id}`}
+                    checked={cityFilter.has(loc.id)}
+                    onCheckedChange={() => toggleCity(loc.id)}
+                  />
+                  <Label htmlFor={`city-${loc.id}`} className="text-sm font-normal cursor-pointer">
+                    {loc.name}
+                    {locationId && locationId === loc.id ? " (you)" : ""}
+                  </Label>
+                </div>
+              ))}
+            </div>
           </div>
 
           <div>
@@ -197,20 +339,32 @@ function BrowseContent() {
           </div>
         </aside>
 
-        {/* Results */}
         <div>
           {filtered.length === 0 ? (
             <p className="mt-16 text-center text-muted-foreground">No items match your filters.</p>
           ) : view === "grid" ? (
             <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-              {filtered.map((l) => <ListingCard key={l.id} listing={l} />)}
+              {filtered.map((l) => (
+                <ListingCard
+                  key={l.id}
+                  listing={l}
+                  distanceLabel={formatDistanceKm(distanceBetweenLocationsKm(locationId, l.location))}
+                />
+              ))}
             </div>
           ) : (
             <div className="flex flex-col gap-3">
-              {filtered.map((l) => <ListingRow key={l.id} listing={l} />)}
+              {filtered.map((l) => (
+                <ListingRow
+                  key={l.id}
+                  listing={l}
+                  distanceLabel={formatDistanceKm(distanceBetweenLocationsKm(locationId, l.location))}
+                />
+              ))}
             </div>
           )}
         </div>
+      </div>
       </div>
     </div>
   );

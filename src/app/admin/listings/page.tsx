@@ -64,6 +64,7 @@ function listingToForm(l: Listing): ListingForm {
     description: l.description,
     category: l.category,
     condition: l.condition,
+    location: l.location || "colombo",
     featured: l.featured ?? false,
   };
 }
@@ -115,6 +116,7 @@ export default function AdminListings() {
       description: editForm.description,
       category: editForm.category,
       condition: editForm.condition,
+      location: editForm.location,
       featured: editForm.featured,
     });
     setEditTarget(null);

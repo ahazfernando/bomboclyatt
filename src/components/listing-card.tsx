@@ -7,9 +7,16 @@ import { useStore } from "@/lib/store";
 import { Badge } from "@/components/ui/badge";
 import { isListingBoosted } from "@/lib/boost";
 import { listingPrimaryImage } from "@/lib/listing-media";
-import { Rocket, Star } from "lucide-react";
+import { locationLabel } from "@/lib/locations";
+import { MapPin, Rocket, Star } from "lucide-react";
 
-export function ListingCard({ listing }: { listing: Listing }) {
+export function ListingCard({
+  listing,
+  distanceLabel,
+}: {
+  listing: Listing;
+  distanceLabel?: string | null;
+}) {
   const { formatPrice } = useCurrency();
   const { trackListingClick } = useStore();
 
@@ -48,6 +55,11 @@ export function ListingCard({ listing }: { listing: Listing }) {
         </div>
         <h3 className="mt-3 line-clamp-1 font-semibold text-foreground">{listing.title}</h3>
         <p className="text-xs text-muted-foreground">{listing.set}</p>
+        <p className="mt-1 inline-flex items-center gap-1 text-xs text-muted-foreground">
+          <MapPin className="h-3 w-3" />
+          {locationLabel(listing.location)}
+          {distanceLabel ? ` · ${distanceLabel}` : ""}
+        </p>
         <div className="mt-3 flex items-end justify-between">
           <span className="display text-2xl text-primary">{formatPrice(listing.price)}</span>
           <span className="text-xs text-muted-foreground">View →</span>

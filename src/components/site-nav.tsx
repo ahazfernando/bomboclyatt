@@ -3,18 +3,21 @@
 import Link from "next/link";
 import { useStore } from "@/lib/store";
 import { useCurrency, CURRENCIES, type Currency } from "@/lib/currency";
+import { useLocation, MARKET_LOCATIONS } from "@/lib/location";
 import { AuthNavActions } from "@/components/auth-nav-actions";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { MapPin } from "lucide-react";
 
 export function SiteNav() {
   const { currentAdmin, sessionType } = useStore();
   const { currency, setCurrency } = useCurrency();
+  const { locationId, setLocationId } = useLocation();
   const isAdmin = sessionType === "admin" && !!currentAdmin;
 
   return (
     <header className="sticky top-0 z-40 border-b border-border/60 bg-background/85 backdrop-blur">
-      <div className="page-shell flex items-center justify-between py-4">
-        <Link href="/" className="flex items-center group">
+      <div className="page-shell flex items-center justify-between gap-3 py-4">
+        <Link href="/" className="flex items-center group shrink-0">
           <img
             src="/logo/BomboclyattRedesign.png"
             alt="Bomboclyatt"
@@ -29,7 +32,25 @@ export function SiteNav() {
           )}
         </nav>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <Select
+            value={locationId ?? "all"}
+            onValueChange={(v) => setLocationId(v === "all" ? null : v)}
+          >
+            <SelectTrigger aria-label="Your location" className="h-9 w-[9.5rem] sm:w-[11.5rem] bg-card">
+              <MapPin className="mr-1.5 h-3.5 w-3.5 shrink-0 text-primary" />
+              <SelectValue placeholder="Set location" />
+            </SelectTrigger>
+            <SelectContent align="end" className="max-h-72">
+              <SelectItem value="all">All locations</SelectItem>
+              {MARKET_LOCATIONS.map((loc) => (
+                <SelectItem key={loc.id} value={loc.id}>
+                  {loc.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
           <Select value={currency} onValueChange={(v) => setCurrency(v as Currency)}>
             <SelectTrigger aria-label="Currency" className="h-9 w-[5.5rem] bg-card">
               <SelectValue />
