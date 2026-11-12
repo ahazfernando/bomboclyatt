@@ -9,6 +9,7 @@ import { isListingBoosted } from "@/lib/boost";
 import { listingPrimaryImage } from "@/lib/listing-media";
 import { locationLabel } from "@/lib/locations";
 import { MapPin, Rocket, Star } from "lucide-react";
+import { ListingShareButton } from "@/components/listing-share";
 
 export function ListingCard({
   listing,
@@ -24,15 +25,18 @@ export function ListingCard({
     <Link
       href={`/listing/${listing.id}`}
       onClick={() => trackListingClick(listing.id)}
-      className="group block overflow-hidden rounded-2xl bg-card shadow-card transition-all hover:-translate-y-1 hover:shadow-glow"
+      className="group relative block overflow-hidden rounded-2xl bg-card shadow-card transition-all hover:-translate-y-1 hover:shadow-glow"
     >
-      <div className="aspect-[4/5] overflow-hidden bg-muted">
+      <div className="aspect-[4/5] relative overflow-hidden bg-muted">
         <img
           src={listingPrimaryImage(listing)}
           alt={listing.title}
           className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
           loading="lazy"
         />
+        <div className="absolute right-3 top-3 z-10 opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100">
+          <ListingShareButton compact listingId={listing.id} title={listing.title} />
+        </div>
       </div>
       <div className="p-4">
         <div className="flex items-center justify-between gap-2">

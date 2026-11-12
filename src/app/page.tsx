@@ -23,7 +23,7 @@ export default function Index() {
                 <Flame className="h-3.5 w-3.5" /> New drops every day
               </div>
               <h1 className="display mt-6 text-5xl leading-[0.95] md:text-7xl">
-                Trade collectibles<br />like a champion.
+                Trade the marketplace<br />like a champion.
               </h1>
               <p className="mt-6 max-w-md text-lg text-primary-foreground/90">
                 Collectibles marketplace: buy from trusted sellers, close on WhatsApp, earn points on pickup.

@@ -9,6 +9,7 @@ import { isListingBoosted } from "@/lib/boost";
 import { listingPrimaryImage } from "@/lib/listing-media";
 import { locationLabel } from "@/lib/locations";
 import { MapPin, Rocket, Star } from "lucide-react";
+import { ListingShareButton } from "@/components/listing-share";
 
 export function ListingRow({
   listing,
@@ -24,7 +25,7 @@ export function ListingRow({
     <Link
       href={`/listing/${listing.id}`}
       onClick={() => trackListingClick(listing.id)}
-      className="group flex gap-5 rounded-xl border border-border bg-card p-4 transition-all hover:border-accent/50 hover:shadow-card"
+      className="group relative flex gap-5 rounded-xl border border-border bg-card p-4 transition-all hover:border-accent/50 hover:shadow-card"
     >
       <div className="h-40 w-40 shrink-0 overflow-hidden rounded-lg bg-muted">
         <img
@@ -54,6 +55,9 @@ export function ListingRow({
               </Badge>
             )}
             {listing.sold && <Badge className="bg-destructive text-destructive-foreground">SOLD</Badge>}
+            <div className="ml-auto">
+              <ListingShareButton compact listingId={listing.id} title={listing.title} />
+            </div>
           </div>
           <h3 className="mt-2 line-clamp-1 text-lg font-semibold text-foreground group-hover:text-primary">
             {listing.title}

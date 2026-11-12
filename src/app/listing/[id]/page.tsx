@@ -14,6 +14,7 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { ListingCard } from "@/components/listing-card";
 import { ListingOffersBids } from "@/components/listing-offers-bids";
+import { ListingShareButton } from "@/components/listing-share";
 import { listingDiscountPercent } from "@/lib/listing-pricing";
 import { Badge } from "@/components/ui/badge";
 import { isListingApproved, listingImages } from "@/lib/listing-media";
@@ -250,6 +251,7 @@ export default function ListingDetail() {
                 )}
               </div>
             )}
+            <ListingShareButton listingId={listing.id} title={listing.title} />
           </div>
 
           {!listing.sold && <ListingOffersBids listing={listing} listPrice={listing.price} />}
