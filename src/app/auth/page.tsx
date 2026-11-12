@@ -205,12 +205,6 @@ function AuthContent() {
             Log in
           </Link>
         </p>
-        <p className="mt-3 text-center text-sm text-white/40">
-          Platform admin?{" "}
-          <Link href="/auth/admin?mode=register" className="font-medium text-white/70 hover:underline">
-            Admin sign up
-          </Link>
-        </p>
       </AuthShell>
     );
   }
@@ -266,12 +260,6 @@ function AuthContent() {
         Don&apos;t have an account?{" "}
         <Link href="/auth?mode=register" className="font-medium text-white hover:underline">
           Sign up
-        </Link>
-      </p>
-      <p className="mt-3 text-center text-sm text-white/40">
-        Platform admin?{" "}
-        <Link href="/auth/admin?mode=login" className="font-medium text-white/70 hover:underline">
-          Admin sign in
         </Link>
       </p>
     </AuthShell>
