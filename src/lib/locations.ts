@@ -54,6 +54,50 @@ export function locationLabel(id: string | undefined | null): string {
   return getLocationById(id)?.name ?? "Location TBD";
 }
 
+/** Stable region order for picker UI. */
+export const MARKET_REGIONS = [
+  "Western",
+  "Central",
+  "Southern",
+  "Northern",
+  "Eastern",
+  "North Central",
+  "North Western",
+  "Sabaragamuwa",
+  "Uva",
+] as const;
+
+export type MarketRegion = (typeof MARKET_REGIONS)[number];
+
+export function locationsByRegion(
+  locations: MarketLocation[] = MARKET_LOCATIONS,
+): { region: string; cities: MarketLocation[] }[] {
+  const map = new Map<string, MarketLocation[]>();
+  for (const loc of locations) {
+    const list = map.get(loc.region) ?? [];
+    list.push(loc);
+    map.set(loc.region, list);
+  }
+  return MARKET_REGIONS.filter((r) => map.has(r)).map((region) => ({
+    region,
+    cities: map.get(region)!,
+  }));
+}
+
+export function distanceLabel(filter: DistanceFilter): string {
+  return DISTANCE_OPTIONS.find((o) => o.value === filter)?.label ?? "Anywhere";
+}
+
+export function formatShoppingNear(
+  location: MarketLocation | null | undefined,
+  filter: DistanceFilter = "any",
+): string {
+  if (!location) return "Anywhere in Sri Lanka";
+  if (filter === "any") return `Near ${location.name}`;
+  if (filter === "same-city") return `In ${location.name}`;
+  return `Near ${location.name} · ${distanceLabel(filter)}`;
+}
+
 function toRad(deg: number) {
   return (deg * Math.PI) / 180;
 }
