@@ -24,8 +24,6 @@ export function SiteNav() {
 
         <nav className="hidden items-center gap-8 md:flex">
           <Link href="/browse" className="text-sm font-medium hover:text-primary transition-colors">Buy</Link>
-          <Link href="/events" className="text-sm font-medium hover:text-primary transition-colors">Events</Link>
-          <Link href="/giveaways" className="text-sm font-medium hover:text-primary transition-colors">Giveaways</Link>
           {isAdmin && (
             <Link href="/admin" className="text-sm font-medium hover:text-primary transition-colors">Admin</Link>
           )}
@@ -73,12 +71,6 @@ export function SiteFooter() {
                 </p>
               </div>
               <div>
-                <h4 className="font-semibold text-tuft text-sm">Weekly Giveaways</h4>
-                <p className="mt-2 text-sm text-tuft/70 leading-relaxed">
-                  Free packs, singles, sealed product, and collectible drops for active community members.
-                </p>
-              </div>
-              <div>
                 <h4 className="font-semibold text-tuft text-sm">Verified Sellers</h4>
                 <p className="mt-2 text-sm text-tuft/70 leading-relaxed">
                   Every seller is rated by the community. Reviews on every product keep the marketplace honest.
@@ -99,10 +91,7 @@ export function SiteFooter() {
             <ul className="mt-4 space-y-3 text-sm">
               <li><Link href="/browse" className="hover:text-crusta transition-colors">Buy Collectibles</Link></li>
               <li><Link href="/browse" className="hover:text-crusta transition-colors">New Drops</Link></li>
-              <li><Link href="/events" className="hover:text-crusta transition-colors">Events</Link></li>
-              <li><Link href="/giveaways" className="hover:text-crusta transition-colors">Giveaways</Link></li>
               <li><Link href="/auth?mode=register" className="hover:text-crusta transition-colors">Become a Seller</Link></li>
-              <li><Link href="/dashboard" className="hover:text-crusta transition-colors">My Dashboard</Link></li>
               <li><Link href="/auth" className="hover:text-crusta transition-colors">Sign In</Link></li>
             </ul>
           </div>
@@ -146,9 +135,6 @@ export function SiteFooter() {
             </Link>
             <nav className="flex items-center gap-6 text-sm">
               <Link href="/browse" className="hover:text-crusta transition-colors">Buy</Link>
-              <Link href="/events" className="hover:text-crusta transition-colors">Events</Link>
-              <Link href="/giveaways" className="hover:text-crusta transition-colors">Giveaways</Link>
-              <Link href="/dashboard" className="hover:text-crusta transition-colors">Dashboard</Link>
             </nav>
           </div>
           <p className="text-sm text-tuft/60 max-w-md lg:text-right">

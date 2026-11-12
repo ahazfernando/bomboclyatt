@@ -182,16 +182,6 @@ export default function DashboardOverview() {
               <Link href="/browse" className="block rounded-xl bg-secondary/50 px-3 py-2 hover:bg-secondary">
                 Browse marketplace →
               </Link>
-              {isSeller && (
-                <>
-                  <Link href="/dashboard/events" className="block rounded-xl bg-secondary/50 px-3 py-2 hover:bg-secondary">
-                    Host events →
-                  </Link>
-                  <Link href="/dashboard/giveaways" className="block rounded-xl bg-secondary/50 px-3 py-2 hover:bg-secondary">
-                    Run giveaways →
-                  </Link>
-                </>
-              )}
               {!isSeller && (
                 <Link href="/dashboard/purchases" className="block rounded-xl bg-secondary/50 px-3 py-2 hover:bg-secondary">
                   View purchases →

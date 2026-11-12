@@ -58,7 +58,7 @@ export interface Listing {
   /** Up to 3 listing photos (URLs or data URLs). */
   images: string[];
   description: string;
-  category: "Sealed Product" | "Single Hits" | "Accessories" | "Slabs" | "Comics" | "Diecast";
+  category: "Electronics" | "Games" | "TCG" | "Comics" | "Diecast";
   sold: boolean;
   buyerId?: string;
   createdAt: string;

@@ -16,7 +16,7 @@ import { LayoutGrid, List } from "lucide-react";
 import { sortListingsWithBoost } from "@/lib/boost";
 import { isListingApproved } from "@/lib/listing-media";
 
-const categories = ["All", "Sealed Product", "Single Hits", "Accessories", "Slabs", "Comics", "Diecast"] as const;
+const categories = ["All", "Electronics", "Games", "TCG", "Comics", "Diecast"] as const;
 const conditions = ["Mint", "Near Mint", "Lightly Played", "Played"] as const;
 type Sort = "newest" | "price-asc" | "price-desc";
 type Category = (typeof categories)[number];

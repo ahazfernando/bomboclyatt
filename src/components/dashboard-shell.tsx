@@ -16,8 +16,6 @@ import {
   Package,
   ShoppingBag,
   BarChart3,
-  Calendar,
-  Gift,
   Settings,
   LogOut,
   Search,
@@ -41,8 +39,6 @@ const sellerRail = [
   { to: "/dashboard/messages", icon: MessageSquare, label: "Messages" },
   { to: "/dashboard/wallet", icon: Wallet, label: "Wallet" },
   { to: "/dashboard/analytics", icon: BarChart3, label: "Analytics" },
-  { to: "/dashboard/events", icon: Calendar, label: "Events" },
-  { to: "/dashboard/giveaways", icon: Gift, label: "Giveaways" },
 ] as const;
 
 function RailLink({

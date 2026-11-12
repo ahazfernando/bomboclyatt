@@ -49,7 +49,7 @@ const emptyForm: ListingForm = {
   price: 0,
   images: [],
   description: "",
-  category: "Single Hits",
+  category: "Games",
   condition: "Near Mint",
   featured: false,
 };

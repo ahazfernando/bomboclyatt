@@ -62,7 +62,7 @@ import {
   uploadListingImage,
 } from "@/lib/listing-media";
 
-const categories = ["Sealed Product", "Single Hits", "Accessories", "Slabs", "Comics", "Diecast"] as const;
+const categories = ["Electronics", "Games", "TCG", "Comics", "Diecast"] as const;
 const conditions = ["Mint", "Near Mint", "Lightly Played", "Played"] as const;
 
 export type ListingForm = {
@@ -82,7 +82,7 @@ const emptyForm: ListingForm = {
   price: 0,
   images: [],
   description: "",
-  category: "Single Hits",
+  category: "Games",
   condition: "Near Mint",
   featured: false,
 };
